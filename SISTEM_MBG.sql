@@ -14,8 +14,4 @@ user_name VARCHAR(20) UNIQUE not null,
 password VARCHAR(10) unique not null,
 no_telpon varchar(14) unique not null
 )
-insert into admin(nama_admin,user_name,password,no_telpon)
-VALUES ('Mario', 'icikiwir','mar123','12309812309')
-
-select * from petani
 

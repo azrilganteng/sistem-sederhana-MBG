@@ -32,7 +32,7 @@ def admin():
 
             conn=connect()
             with conn.cursor() as cur:
-                query = "INSERT INTO petani(nama,alamat,no_telpon,user_name,password)" \
+                query = "INSERT INTO petani(nama_petani,alamat,no_hp,user_name,password)" \
                 "VALUES (%s, %s, %s, %s, %s)"
                 cur.execute(query,(nama,almt,tlpn,usr,pw))
             conn.commit()
@@ -64,6 +64,6 @@ def login():
             print("Terjadi kesalahan:", e)
 
             conn.close()
-
+print("======== AYo LOGIN DULU ============")
 login()
 
