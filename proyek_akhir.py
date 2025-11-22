@@ -13,57 +13,79 @@ def connect():
     except Exception as e:
         print("Terjadi kesalahan:", e)
 
-def admin():
-    print("==== Halaman Admin ====")
-    print("1. Tambah data petani baru")
-    print("2. Tambah data karyawan baru")
-    print("3. Tambah data instansi baru")
-
-    pilihan=input("========= Mau ngapain nih? =========")
-
-    if pilihan == "1":
-        print("====== Tambah data petani baru =======")
-        try:
-            nama=input("masukkan nama petani baru: ")
-            almt=input("masukkan alamat petani: ")
-            tlpn=input("masukkan nomer telpon petani: ")
-            usr=input("masukkan username login petani: ")
-            pw=input("masukkan password login petani: ")
-
-            conn=connect()
-            with conn.cursor() as cur:
-                query = "INSERT INTO petani(nama_petani,alamat,no_hp,user_name,password)" \
-                "VALUES (%s, %s, %s, %s, %s)"
-                cur.execute(query,(nama,almt,tlpn,usr,pw))
-            conn.commit()
-            print("Data petani Berhasil ditambah")
-
-        except Exception as e:
-            print("Terjadi kesalahan:", e)
-       
 def login():
     while True:
-        print("halaman login")
-        Username= input("masukkan username: ")
-        password= input("masukkan password: ")
-
-        
+        print("\n--- HALAMAN LOGIN ---")
+        Username = input("masukkan username: ")
+        password = input("masukkan password: ")
+     
         try:
-            conn=connect()
-            with conn.cursor() as cur:
-                query = "SELECT * FROM admin WHERE user_name = %s AND password = %s"
-                cur.execute(query,(Username,password))
-
+            conn = connect()
+            with conn.cursor() as cur: 
+                check_akun = """SELECT id_akun, id_role FROM akun
+                                WHERE user_name = %s AND password = %s"""
+                cur.execute(check_akun, (Username, password))
                 result = cur.fetchone()
-                if result:
-                    admin()
-                    break
+                
+                if result is None:
+                    print("Login Gagal: Username atau Password salah.")
                 else:
-                    print("username atau password salah")
-        except Exception as e:
-            print("Terjadi kesalahan:", e)
+                    result_id = result[0]
+                    result_role = result[1]
 
-            conn.close()
+                    user_actv = {
+                        'id_akun': result_id,
+                        'role': result_role,
+                        'nama': None,
+                        'id_asli': None 
+                    }
+
+                    if result_role == 1:
+                        petani=("SELECT id_petani, nama_petani FROM petani WHERE id_akun = %s")
+                        cur.execute(petani,(result_id,))
+                        data_petani = cur.fetchone()
+                        
+                        if data_petani:
+                            user_actv['id_asli'] = data_petani[0] 
+                            user_actv['nama'] = data_petani[1]   
+                            
+                            print(f"Selamat datang Petani {user_actv['nama']}")
+                            print("Mau ngapain hari ini? ")
+                            menu_petani()
+                            return user_actv 
+                        else:
+                            print("Error: Data detail petani tidak ditemukan.")
+                            break 
+                    
+                    elif result_role == 2: 
+                         print("Login sebagai Karyawan")
+                         break
+
+        except Exception as e:
+            print("Terjadi kesalahan sistem:", e)
+            return None 
+        
+        finally:
+            if conn:
+                conn.close()  
+def menu_petani(): 
+    # actv_id=user_session['id_asli']
+    # nama_petani=user_session['nama']
+
+    while True:
+        print("==== HALAMAN PETANI ====")
+        print("1. Input Hasil Panen Baru")
+        print("2. Lihat & Update Riwayat Panen")
+        print("3. Keluar (Logout)")
+
+        pilihan=input("pilih 1/2/3")
+
+        if pilihan == '1':
+            print("coba dulu")
+        
+
+
+
 print("======== AYo LOGIN DULU ============")
 login()
 
