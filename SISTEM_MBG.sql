@@ -15,6 +15,7 @@ nama_tumbuhan VARCHAR(50) not null,
 id_nutrisi INTEGER REFERENCES jenis_nutrisi(id_nutrisi)
 )
 CREATE table panen(
+id_panen serial PRIMARY key not null,
 id_tumbuhan integer REFERENCES tumbuhan(id_tumbuhan),
 id_petani integer REFERENCES petani(id_petani),
 kuantitas integer not null,
@@ -40,8 +41,8 @@ CREATE table roles(
 id_role serial primary key not null,
 nama_role VARCHAR(15) not null
 )
-select * from akun
-
+drop table panen
+select * from panen
 select 
 from akun a
 

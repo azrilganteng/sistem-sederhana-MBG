@@ -1,1 +1,0 @@
-pilihan=input("pilih 1/2/3")
