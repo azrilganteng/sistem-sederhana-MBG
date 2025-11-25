@@ -1,6 +1,6 @@
 import psycopg2 as pg
 from datetime import date
-
+import tabulate as tbl
 
 
 #CONNECTION TO DATABASE
@@ -54,8 +54,6 @@ def login():
                             user_actv['id_asli'] = data_petani[0] 
                             user_actv['nama'] = data_petani[1]   
                             
-                            print(f"Selamat datang Petani {user_actv['nama']}")
-                            print("Mau ngapain hari ini? ")
                             menu_petani(user_actv)
                             return user_actv 
                         else:
@@ -122,8 +120,82 @@ def add_nutrisi(nama_baru):
     except Exception as e:
         print("Terjadi kesalahan sistem:", e)
         return None
+#UPDATE FUNCTION
+def update(id_petani):
+    try:
+        conn = connect()
+        with conn.cursor() as cur:
+            id_update = int(input("Masukkan ID yang mau di ubah: "))
+
+            check_id = "SELECT id_tumbuhan FROM panen WHERE id_panen = %s AND id_petani = %s"
+            cur.execute(check_id, (id_update, id_petani))
+
+            find=cur.fetchone()
+            if not find:
+                print("ID tidak ditemukan atau hasil panen bukan milik anda")
+                return
+
+            try:
+                qty_baru = int(input("Masukkan kuantitas baru: "))
+
+            except ValueError:
+                print("Kuantitas harus angka!")
+                return
+
+            update_qty = """UPDATE panen SET kuantitas = %s WHERE id_panen = %s"""
+            cur.execute(update_qty, (qty_baru, id_update))
+
+            conn.commit()
+            print("Data berhasil diperbarui!")
         
-    
+    except Exception as e:
+        print("Terjadi kesalahan:", e)
+
+
+def show(id_petani,user_session):
+    nama_petani=user_session['nama']
+    try:
+        conn = connect()
+        with conn.cursor() as cur:
+            print(f"==== RIWAYAT PANEN  {nama_petani}")
+            read_data="""SELECT pa.id_panen,p.nama_petani,t.nama_tumbuhan,pa.kuantitas,pa.tgl_panen
+                from petani p join panen pa using(id_petani)
+                JOIN tumbuhan t using(id_tumbuhan)
+                WHERE p.id_petani = %s
+                ORDER BY pa.id_panen"""
+            cur.execute(read_data,(id_petani,))
+            show=cur.fetchall()
+            if not show:
+                print("Anda belum memiliki data panen")
+            else:
+                print("History Panen anda")
+                header=["id panen","nama petani","nama tumbuhan","kuantitas (kg)","tanggal panen"]
+                print(tbl.tabulate(show,headers=header,tablefmt="fancy_grid"))
+                try:
+                    print("1. update data")
+                    print("2. kembali")
+                    try:
+                        input_update = input("Masukan pilihan kamu: ").strip()
+
+                        if input_update == '1':
+                            update(id_petani)
+                            
+                        elif input_update == '2':
+                            menu_petani(user_session)
+                    except ValueError:
+                        print("ID harus berupa angka.")
+                        return
+
+                except Exception as e:
+                    print("Terjadi kesalahan:", e)
+
+        if conn:
+            conn.close()
+
+
+    except Exception as e:
+        print("terjadi kesalahan: ",e)
+        return None         
 # ADD PANEN
 def tambah_panen(id_petani):
     try:
@@ -139,7 +211,7 @@ def tambah_panen(id_petani):
                 id_tumbuhan_fix = result[0]
                 print(f"Data ditemukan: {result[1]} (ID: {id_tumbuhan_fix})")
             else:
-                add_nutrisi(input_tumbuhan)
+                id_tumbuhan_fix=add_nutrisi(input_tumbuhan)
 
             kuantitas = int(input("Kuantitas barang: "))
             tgl = input("Tanggal panen (yyyy-mm-dd) [Tekan enter]: ")
@@ -176,7 +248,7 @@ def menu_petani(user_session):
         if pilihan == '1':
             tambah_panen(actv_id)
         elif pilihan == '2':
-            update_panen()#beta version 
+            show(actv_id,user_session)#beta version 
         elif pilihan == '3':
             logout(user_session)
         
