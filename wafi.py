@@ -1,2 +1,2 @@
-print "yes"
-halo wafi
+print ("yes")
+print ("halo wafi")
