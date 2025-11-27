@@ -64,19 +64,19 @@ id_gudang serial PRIMARY key not null,
 stok integer not null,
 id_tumubuhan INTEGER REFERENCES tumbuhan(id_tumbuhan)
 )
-select * from akun
-CREATE table distribusi(
-id_distribusi serial PRIMARY key not null,
-tgl_distribusi date not null,
-kuantitas integer not null,
-id_transaksi integer REFERENCES jenis_transaksi(id_transaksi),
-id_gudang integer REFERENCES gudang (id_gudang),
-id_karyawan integer REFERENCES karyawan (id_karyawan)
-)
 
 CREATE table jenis_transaksi(
 id_transaksi serial PRIMARY key not null,
 nama_transaksi varchar(20) not null
 )
-select * from jenis_transaksi
+
+CREATE table distribusi(
+id_distribusi serial primary key not null,
+tgl_distribusi date not null,
+kuantitas integer not null,
+id_gudang integer REFERENCES gudang(id_gudang),
+id_karyawan integer REFERENCES karyawan(id_karyawan),
+id_nutrisi integer REFERENCES jenis_nutrisi(id_nutrisi),
+id_transaksi integer REFERENCES jenis_transaksi(id_transaksi)
+)
 
