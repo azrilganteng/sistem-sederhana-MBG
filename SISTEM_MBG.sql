@@ -1,4 +1,4 @@
-
+SELECT * from distribusi
 
 
 CREATE table petani(
@@ -107,3 +107,4 @@ UPDATE dapur_instansi
 SET id_akun = 3
 WHERE id_akun =4;
 
+select * from pengiriman_ki

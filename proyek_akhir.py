@@ -7,6 +7,7 @@ from rich.console import Console
 from rich.align import Align
 import os
 from rich.prompt import Prompt
+import time
 
 #CONNECTION TO DATABASE
 def connect():
@@ -44,8 +45,8 @@ def login():
         judul = Figlet(font='slant').renderText("LOGIN")
         console.print(judul, style="bold cyan", justify="center")
 
-        Username = Prompt.ask("[bold green]Username[/]")
-        password = Prompt.ask("[bold green]Password[/]",password=True)
+        Username = Prompt.ask("[bold green]Username[/]").lower().strip()
+        password = Prompt.ask("[bold green]Password[/]",password=True).strip()
      
         try:
             conn = connect()
@@ -57,6 +58,8 @@ def login():
                 
                 if result is None:
                     print("Login Gagal: Username atau Password salah.")
+                    time.sleep(2)
+                    clear()
                 else:
                     result_id = result[0]
                     result_role = result[1]
@@ -97,7 +100,7 @@ def login():
                         else:
                             print("Error: Data detail karyawan tidak ditemukan.")
                             break
-                    elif result_role == 3: #betulkan
+                    elif result_role == 3: 
                         karyawan=("SELECT id_karyawan, nama_karyawan FROM karyawan WHERE id_akun = %s")
                         cur.execute(karyawan,(result_id,))
                         data_karyawan = cur.fetchone()
@@ -112,8 +115,8 @@ def login():
                             print("Error: Data detail karyawan tidak ditemukan.")
                             break  
             if conn:
-                clear()
                 conn.close()
+                clear()
 
         except Exception as e:
             print("Terjadi kesalahan sistem:", e)
@@ -131,16 +134,21 @@ def logout(user_session):
         ).ask()
 
         if confirm == "1. Ya":
-            print(f"Sampai jumpa kembali, {nama}!")
+            judul = [[f"SAMPAI JUMPA {nama}"]]
+            print("\n" + tbl.tabulate(judul, tablefmt="fancy_grid"))
+            time.sleep(1)
             clear()
             exit()
         elif confirm == "2. Tidak":
-            print("gajadi keluar")
+            judul = [["HOREEEE!!! GAJADI KELUAR"]]
+            print("\n" + tbl.tabulate(judul, tablefmt="fancy_grid"))
+            time.sleep(1)
             return
     
     except Exception as e:
         print("Terjadi kesalahan sistem:", e)
         return None 
+
 #TAMBAH NUTRISI KALO MISAL NAMA TUMBUHAN GA ADA DI DATABASE
 def add_nutrisi(nama_baru): 
     try:
@@ -214,7 +222,8 @@ def show(id_petani,user_session):
     try:
         conn = connect()
         with conn.cursor() as cur:
-            print(f"==== RIWAYAT PANEN  {nama_petani}")
+            judul = [[f"RIWAYAT PANEN: {nama_petani.upper()}"]]
+            print("\n" + tbl.tabulate(judul, tablefmt="fancy_grid"))
             read_data="""SELECT pa.id_panen,p.nama_petani,t.nama_tumbuhan,pa.kuantitas,pa.tgl_panen
                 from petani p join panen pa using(id_petani)
                 JOIN tumbuhan t using(id_tumbuhan)
@@ -225,32 +234,26 @@ def show(id_petani,user_session):
             if not show:
                 print("Anda belum memiliki data panen")
             else:
-                print("History Panen anda")
                 header=["id panen","nama petani","nama tumbuhan","kuantitas (kg)","tanggal panen"]
                 print(tbl.tabulate(show,headers=header,tablefmt="fancy_grid"))
+
                 try:
-                    print("1. update data")
-                    print("2. kembali")
-                    try:
-                        pilihan = questionary.select(
-                            "Masukkan pilihan kamu",
-                            choices=[
-                                "1. Update data",
-                                "2. Kembali ke menu"
+                    pilihan = questionary.select(
+                        "Masukkan pilihan kamu",
+                        choices=[
+                            "1. Update data",
+                            "2. Kembali ke menu"
                             ]
-                        ).ask()
+                    ).ask()
 
-                        if pilihan == "1. Update data":
-                            update(id_petani)
+                    if pilihan == "1. Update data":
+                        update(id_petani)
                             
-                        elif pilihan == "2. Kembali ke menu":
-                            menu_petani(user_session)
-                    except ValueError:
-                        print("ID harus berupa angka.")
-                        return
-
-                except Exception as e:
-                    print("Terjadi kesalahan:", e)
+                    elif pilihan == "2. Kembali ke menu":
+                        menu_petani(user_session)
+                except ValueError:
+                    print("ID harus berupa angka.")
+                    return
 
         if conn:
             conn.close()
@@ -312,7 +315,7 @@ def tambah_panen(id_petani):
         
         
         id_pengiriman = cur.fetchone()[0]
-        print(f"-> Membuat ID Pengiriman: {id_pengiriman}")
+        print(f"Membuat ID Pengiriman: {id_pengiriman}")
 
        
         for item in banyak:
@@ -375,8 +378,9 @@ def verifikasi_panen(id_karyawan):
     cur = conn.cursor()
 
     try:
-        print("\n==== VERIFIKASI PENGIRIMAN MASUK ====")
-     
+        judul = [["VERIFIKASI PENGIRIMAN MASUK"]]
+        print("\n" + tbl.tabulate(judul, tablefmt="fancy_grid"))
+
         q_pending = """
             SELECT p.id_pengiriman, pet.nama_petani, p.tgl_pengiriman, COUNT(dp.id_detail)
             FROM pengiriman_pk p
@@ -396,9 +400,11 @@ def verifikasi_panen(id_karyawan):
         print(tbl.tabulate(list_pending, headers=["ID", "Petani", "Tanggal", "Jml Item"], tablefmt="fancy_grid"))
 
         try:
-            pilih = int(input("\nPilih ID Pengiriman (0 batal): "))
+            pilih = int(input("\nPilih ID Pengiriman: "))
+            print("[ENTER] untuk keluar")
         except ValueError: return
-        if pilih == 0: return
+        if not pilih:
+            return
 
         cur.execute("SELECT id_pengiriman FROM pengiriman_pk WHERE id_pengiriman = %s AND status_verifikasi = 'sedang dikirim'", (pilih,))
         if not cur.fetchone():
@@ -437,6 +443,7 @@ def verifikasi_panen(id_karyawan):
         print("Sedang memproses...")
         ID_TRANSAKSI_MASUK = 1 
         tgl_hari_ini = date.today()
+        time.sleep(1)
 
         for barang in isi_detail:
             id_tumb = barang[0]
@@ -445,11 +452,10 @@ def verifikasi_panen(id_karyawan):
     
             q_dist = """
                 INSERT INTO distribusi (tgl_distribusi, kuantitas, id_gudang, id_karyawan, id_tumbuhan, id_transaksi)
-                VALUES (%s, %s, %s, %s, %s, %s)
-            """
+                VALUES (%s, %s, %s, %s, %s, %s)"""
 
             cur.execute(q_dist, (tgl_hari_ini, qty_masuk, pilih_gudang, id_karyawan, id_tumb, ID_TRANSAKSI_MASUK))
-            print(f"   -> {nama_brg}: Tercatat masuk di distribusi (+{qty_masuk} Kg)")
+            print(f" {nama_brg}: Tercatat masuk di distribusi (+{qty_masuk} Kg)")
 
         cur.execute("UPDATE pengiriman_pk SET status_verifikasi = 'Diterima', id_karyawan = %s WHERE id_pengiriman = %s", (id_karyawan, pilih))
         
@@ -463,46 +469,55 @@ def verifikasi_panen(id_karyawan):
         if conn: conn.close()
 
 #CEK GUDANG
-def gudang(id_karyawan, user_session):
+def show_gudang():
     conn = connect()
     with conn.cursor() as cur:
-        try:
-            print("\n==== STOK GUDANG ====")
-            
-            show_gudang = """
-                SELECT g.nama_gudang,t.nama_tumbuhan,SUM(CASE WHEN d.id_transaksi = 1 THEN d.kuantitas ELSE -d.kuantitas END) as total_stok,t.id_tumbuhan
-                FROM distribusi d
-                JOIN gudang g ON d.id_gudang = g.id_gudang
-                JOIN tumbuhan t ON d.id_tumbuhan = t.id_tumbuhan
-                GROUP BY g.nama_gudang, t.nama_tumbuhan, t.id_tumbuhan
-                HAVING SUM(CASE WHEN d.id_transaksi = 1 THEN d.kuantitas ELSE -d.kuantitas END) > 0
-                ORDER BY g.nama_gudang ASC, t.nama_tumbuhan ASC
-            """
-            cur.execute(show_gudang)
-            show = cur.fetchall()
-
-            if not show:
-                print("Gudang kosong.")
-                return
-
-            headers = ["Lokasi", "Nama Komoditas", "Total Stok (Kg)", "ID Barang"]
-            print(tbl.tabulate(show, headers=headers, tablefmt="fancy_grid"))
-            
-            input("\nTekan Enter untuk kembali...")
-                
-        except Exception as e:
-            print("Terjadi kesalahan:", e)
-    
-    if conn: 
-        conn.close()
-def show_instansi(id_karyawan):
-    conn = connect()
-    with conn.cursor() as cur:
-        print(f"==== DAFTAR APUR ====")
-        read_data=""""""
-        cur.execute(read_data,(id_karyawan,))
-        show=cur.fetchall()
+        query = """
+            SELECT g.nama_gudang, t.nama_tumbuhan, 
+            SUM(CASE WHEN d.id_transaksi = 1 THEN d.kuantitas ELSE -d.kuantitas END) as total_stok, 
+            t.id_tumbuhan
+            FROM distribusi d
+            JOIN gudang g ON d.id_gudang = g.id_gudang
+            JOIN tumbuhan t ON d.id_tumbuhan = t.id_tumbuhan
+            GROUP BY g.nama_gudang, t.nama_tumbuhan, t.id_tumbuhan
+            HAVING SUM(CASE WHEN d.id_transaksi = 1 THEN d.kuantitas ELSE -d.kuantitas END) > 0
+            ORDER BY g.nama_gudang ASC, t.nama_tumbuhan ASC
+        """
+        cur.execute(query)
+        show = cur.fetchall()
+        
         if not show:
+            print("Stok Gudang Kosong.")
+            return False
+
+        headers = ["Lokasi", "Nama Komoditas", "Total Stok (Kg)", "ID Barang"]
+        print(tbl.tabulate(show, headers=headers, tablefmt="fancy_grid"))
+        return True 
+    
+    if conn: conn.close()
+def gudang():
+    
+    judul = [["STOK GUDANG"]]
+    print("\n" + tbl.tabulate(judul, tablefmt="fancy_grid"))
+    show_gudang()
+            
+    back()
+    
+def back():
+    input("\nTekan Enter untuk kembali =>")
+
+def show_instansi():
+    conn = connect()
+    with conn.cursor() as cur:
+    
+        cur.execute("SELECT id_dapur, nama_dapur FROM dapur_instansi")
+        list_dapur = cur.fetchall()
+        
+        print("\nDaftar Dapur:")
+        headers = ["id_dapur", "Nama Dapur"]
+        print(tbl.tabulate(list_dapur, headers=headers, tablefmt="fancy_grid"))
+        
+        if not list_dapur:
             print("Anda belum memiliki data panen")
 
 #KIRIM KE INSTANSI
@@ -511,20 +526,17 @@ def kirim_instansi(id_karyawan):
     cur = conn.cursor()
 
     try:
-        print("\n==== KIRIM KE DAPUR INSTANSI ====")
- 
-        cur.execute("SELECT id_dapur, nama_dapur FROM dapur_instansi")
-        list_dapur = cur.fetchall()
+        judul = [["IRIM KE DAPUR INSTANSI"]]
+        print("\n" + tbl.tabulate(judul, tablefmt="fancy_grid"))
         
-        print("\nDaftar Dapur:")
-        for d in list_dapur:
-            print(f"{d[0]}. {d[1]}")
-            
+        show_instansi()
         try:
             pilih_dapur = int(input("Kirim ke Dapur mana? (Pilih ID): "))
+            print("[ENTER] untuk kembali")
         except ValueError: return
 
         keranjang = []
+        show_gudang()
         print("\nMasukkan Barang (Ketik 'stop' untuk selesai):")
         
         while True:
@@ -564,7 +576,7 @@ def kirim_instansi(id_karyawan):
                     'qty': qty,
                     'gudang': gudang_sumber
                 })
-                print("✓ Masuk keranjang.")
+                print("Masuk keranjang.")
                 
             except ValueError:
                 print("Input salah.")
@@ -598,7 +610,7 @@ def kirim_instansi(id_karyawan):
 
         conn.commit()
         print(f"SUKSES! Pengiriman ID {id_kirim_baru} sedang dikirim ke Dapur.")
-        print("   (Stok gudang otomatis berkurang)")
+        print("(Stok gudang otomatis berkurang)")
 
     except Exception as e:
         conn.rollback()
@@ -625,7 +637,7 @@ def menu_karyawan(user_session):
         if pilihan == "1. Verifikasi Hasil Panen":
             verifikasi_panen(actv_id)
         elif pilihan == "2. Lihat Stok di Gudang":
-            gudang(actv_id,user_session)
+            gudang()
         elif pilihan == "3. Kirim Ke Dapur Instansi":
             kirim_instansi(actv_id)
         elif pilihan == "4. Keluar":
@@ -646,15 +658,11 @@ def menu_dapur(user_session):
             ]
         ).ask()
     if pilihan == "1. Lihat pengiriman":
-            # verifikasi_penerimaan_dapur(id_dapur)
-            print("1")
+        print("1")
     elif pilihan == "2. Varifikasi pengiriman":
         print("2")
-            # lihat_history_dapur(id_dapur)
     elif pilihan == "3. Logout":
         logout(user_session)
-
-
 
 
 dashboard()
