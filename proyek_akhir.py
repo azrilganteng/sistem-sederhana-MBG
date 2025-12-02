@@ -114,6 +114,20 @@ def login():
                         else:
                             print("Error: Data detail dapur tidak ditemukan.")
                             break  
+                    elif result_role == 4: 
+                        admin=("SELECT id_admin, nama_admin FROM admin WHERE id_akun = %s")
+                        cur.execute(dapur,(result_id,))
+                        data_admin = cur.fetchone()
+                        
+                        if data_dapur:
+                            user_actv['id_asli'] = data_admin[0] 
+                            user_actv['nama'] = data_admin[1]   
+                            
+                            menu_dapur(user_actv)
+                            return user_actv 
+                        else:
+                            print("Error: Data detail admin tidak ditemukan.")
+                            break  
             if conn:
                 conn.close()
                 clear()
