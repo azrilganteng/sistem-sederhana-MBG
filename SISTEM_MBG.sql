@@ -1,3 +1,4 @@
+
 SELECT * from distribusi
 
 
@@ -103,11 +104,11 @@ id_dapur serial primary key not null,
 nama_dapur varchar(50) not null,
 id_akun integer REFERENCES akun(id_akun)
 )
-select * from akun
-select * from dapur_instansi
 
-UPDATE dapur_instansi
-SET id_akun = 3
-WHERE id_akun =4;
-
-select * from pengiriman_ki
+CREATE table admin(
+id_admin serial PRIMARY key not null,
+nama_admin VARCHAR(50) not null,
+id_akun INTEGER REFERENCES akun(id_akun)
+)
+insert into admin(nama_admin,id_akun) values('joko hendrawi',8)
+SELECT * from dapur_instansi

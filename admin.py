@@ -53,3 +53,51 @@ def admin():
 
 
 
+def history_petani_ke_karyawan():
+    conn = connect()
+    cur = conn.cursor()
+
+    bulan = input("Masukkan bulan (1-12): ")
+
+    query = """
+    SELECT p.nama_petani, k.nama_karyawan, t.jenis_tumbuhan, peng.tanggal_pengiriman
+    FROM pengiriman_petani_karyawan peng
+    JOIN petani p ON peng.id_petani = p.id_petani
+    JOIN karyawan k ON peng.id_karyawan = k.id_karyawan
+    JOIN tumbuhan t ON peng.id_tumbuhan = t.id_tumbuhan
+    WHERE EXTRACT(MONTH FROM peng.tanggal_pengiriman) = %s
+    ORDER BY peng.tanggal_pengiriman ASC;
+    """
+
+    cur.execute(query, (bulan,))
+    data = cur.fetchall()
+
+    print("\n=== History Pengiriman Petani → Karyawan ===")
+    for d in data:
+        print(f"Petani: {d[0]} | Karyawan: {d[1]} | Tumbuhan: {d[2]} | Tanggal: {d[3]}")
+
+
+
+def history_karyawan_ke_instansi():
+    conn = connect()
+    cur = conn.cursor()
+
+    bulan = input("Masukkan bulan (1-12): ")
+
+    query = """
+    SELECT k.nama_karyawan, i.nama_instansi, g.jenis_tumbuhan, peng.tanggal_pengiriman
+    FROM pengiriman_karyawan_instansi peng
+    JOIN karyawan k ON peng.id_karyawan = k.id_karyawan
+    JOIN instansi i ON peng.id_instansi = i.id_instansi
+    JOIN tumbuhan g ON peng.id_tumbuhan = g.id_tumbuhan
+    WHERE EXTRACT(MONTH FROM peng.tanggal_pengiriman) = %s
+    ORDER BY peng.tanggal_pengiriman ASC;
+    """
+
+    cur.execute(query, (bulan,))
+    data = cur.fetchall()
+
+    print("\n=== History Pengiriman Karyawan → Instansi ===")
+    for d in data:
+        print(f"Karyawan: {d[0]} | Instansi: {d[1]} | Tumbuhan: {d[2]} | Tanggal: {d[3]}")
+
