@@ -37,6 +37,7 @@ CREATE table roles(
 id_role serial primary key not null,
 nama_role VARCHAR(15) not null
 )
+
 CREATE TABLE pengiriman_pk(
     id_pengiriman serial PRIMARY key not null,
     id_petani integer REFERENCES petani(id_petani),
@@ -79,6 +80,7 @@ id_karyawan integer REFERENCES karyawan(id_karyawan),
 id_transaksi integer REFERENCES jenis_transaksi(id_transaksi),
 tgl_distribusi date not null
 )
+SELECT * from distribusi
 
 create table detail_pengiriman_ki(
 id_detail serial PRIMARY key not null,
@@ -94,6 +96,7 @@ tgl_pegiriman date not null,
 status_verifikasi varchar(20) DEFAULT 'sedang dikirim',
 id_dapur integer REFERENCES dapur_instansi(id_dapur)
 )
+select * from pengiriman_ki
 
 create table dapur_instansi(
 id_dapur serial primary key not null,
