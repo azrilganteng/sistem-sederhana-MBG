@@ -16,8 +16,8 @@ def connect():
         host= "localhost",
         database= "SISTEM_MBG",
         user= "postgres",
-        password = "12345678",
-        port= ""
+        password = "12345",
+        port= "5432"
         )
         return conn
     except Exception as e:
