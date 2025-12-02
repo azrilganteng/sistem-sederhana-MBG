@@ -16,8 +16,8 @@ def connect():
         host= "localhost",
         database= "SISTEM_MBG",
         user= "postgres",
-        password = "12345678",
-        port= ""
+        password = "12345",
+        port= "5432"
         )
         return conn
     except Exception as e:
@@ -101,6 +101,17 @@ def login():
                             print("Error: Data detail karyawan tidak ditemukan.")
                             break
                     elif result_role == 3: 
+                        dapur=("SELECT id_admin, nama_admin FROM admin WHERE id_akun = %s")
+                        cur.execute(dapur,(result_id,))
+                        data_dapur = cur.fetchone()
+                        
+                        if data_dapur:
+                            user_actv['id_asli'] = data_dapur[0] 
+                            user_actv['nama'] = data_dapur[1]   
+                            
+                            menu_admin(user_actv)
+                            return user_actv
+                    elif result_role == 4:
                         dapur=("SELECT id_dapur, nama_dapur FROM dapur_instansi WHERE id_akun = %s")
                         cur.execute(dapur,(result_id,))
                         data_dapur = cur.fetchone()
@@ -109,7 +120,7 @@ def login():
                             user_actv['id_asli'] = data_dapur[0] 
                             user_actv['nama'] = data_dapur[1]   
                             
-                            menu_dapur(user_actv)
+                            menu_karyawan(user_actv)
                             return user_actv 
                         else:
                             print("Error: Data detail dapur tidak ditemukan.")
@@ -794,6 +805,147 @@ def menu_dapur(user_session):
     elif pilihan == "3. Logout":
         logout(user_session)
 
+def menu_admin():
+    while True:
+        print("\n===== MENU ADMIN =====")
+        print("1. Tambah User")
+        print("2. Lihat History (Petani → Karyawan)")
+        print("3. Lihat History (Karyawan → Instansi)")
+        print("4. Logout")
+
+        pilih = input("Masukkan pilihan: ")
+
+        if pilih == "1":
+            tambah_user()
+
+        elif pilih == "2":
+            history_petani_ke_karyawan()
+
+        elif pilih == "3":
+            history_karyawan_ke_instansi()
+
+        elif pilih == "4":
+            print("Logout berhasil.")
+            break
+
+        else:
+            print("Pilihan tidak valid!")
+
+
+def tambah_user():
+    conn = connect()
+    cur = conn.cursor()
+
+    print("\n=== Tambah User ===")
+    print("1. Tambah Petani")
+    print("2. Tambah Karyawan")
+    print("3. Tambah Instansi")
+
+    pilih = input("Masukkan pilihan: ")
+
+    if pilih not in ["1", "2", "3"]:
+        print("Pilihan tidak valid!")
+        return
+
+   
+    username = input("Username baru: ")
+    password = input("Password baru: ")
+
+
+    if pilih == "1":
+        role = 1
+    elif pilih == "2":
+        role = 2
+    else:
+        role = 3
+
+
+    insert_akun = """
+    INSERT INTO akun (user_name, password, id_role)
+    VALUES (%s, %s, %s) RETURNING id_akun;
+    """
+
+    cur.execute(insert_akun, (username, password, role))
+    id_akun_baru = cur.fetchone()[0]
+
+    if role == 1:   
+        nama = input("Nama Petani: ")
+        alamat = input("Alamat: ")
+
+        cur.execute("""
+            INSERT INTO petani (nama_petani, alamat, id_akun)
+            VALUES (%s, %s, %s)
+        """, (nama, alamat, id_akun_baru))
+
+    elif role == 2: 
+        nama = input("Nama Karyawan: ")
+        jabatan = input("Jabatan: ")
+
+        cur.execute("""
+            INSERT INTO karyawan (nama_karyawan, jabatan, id_akun)
+            VALUES (%s, %s, %s)
+        """, (nama, jabatan, id_akun_baru))
+
+    else:  
+        nama = input("Nama Instansi: ")
+        kontak = input("Kontak: ")
+
+        cur.execute("""
+            INSERT INTO instansi (nama_instansi, kontak, id_akun)
+            VALUES (%s, %s, %s)
+        """, (nama, kontak, id_akun_baru))
+
+    conn.commit()
+    print("User berhasil ditambahkan!\n")
+
+
+def history_petani_ke_karyawan():
+    conn = connect()
+    cur = conn.cursor()
+
+    bulan = input("Masukkan bulan (1-12): ")
+
+    query = """
+    SELECT p.nama_petani, k.nama_karyawan, t.jenis_tumbuhan, peng.tanggal_pengiriman
+    FROM pengiriman_petani_karyawan peng
+    JOIN petani p ON peng.id_petani = p.id_petani
+    JOIN karyawan k ON peng.id_karyawan = k.id_karyawan
+    JOIN tumbuhan t ON peng.id_tumbuhan = t.id_tumbuhan
+    WHERE EXTRACT(MONTH FROM peng.tanggal_pengiriman) = %s
+    ORDER BY peng.tanggal_pengiriman ASC;
+    """
+
+    cur.execute(query, (bulan,))
+    data = cur.fetchall()
+
+    print("\n=== History Pengiriman Petani → Karyawan ===")
+    for d in data:
+        print(f"Petani: {d[0]} | Karyawan: {d[1]} | Tumbuhan: {d[2]} | Tanggal: {d[3]}")
+
+
+
+def history_karyawan_ke_instansi():
+    conn = connect()
+    cur = conn.cursor()
+
+    bulan = input("Masukkan bulan (1-12): ")
+
+    query = """
+    SELECT k.nama_karyawan, i.nama_instansi, g.jenis_tumbuhan, peng.tanggal_pengiriman
+    FROM pengiriman_karyawan_instansi peng
+    JOIN karyawan k ON peng.id_karyawan = k.id_karyawan
+    JOIN instansi i ON peng.id_instansi = i.id_instansi
+    JOIN tumbuhan g ON peng.id_tumbuhan = g.id_tumbuhan
+    WHERE EXTRACT(MONTH FROM peng.tanggal_pengiriman) = %s
+    ORDER BY peng.tanggal_pengiriman ASC;
+    """
+
+    cur.execute(query, (bulan,))
+    data = cur.fetchall()
+
+    print("\n=== History Pengiriman Karyawan → Instansi ===")
+    for d in data:
+        print(f"Karyawan: {d[0]} | Instansi: {d[1]} | Tumbuhan: {d[2]} | Tanggal: {d[3]}")
 
 dashboard()
 login()
