@@ -120,10 +120,10 @@ def login():
                             user_actv['id_asli'] = data_dapur[0] 
                             user_actv['nama'] = data_dapur[1]   
                             
-                            menu_dapur(user_actv)
-                            return user_actv
+                            menu_karyawan(user_actv)
+                            return user_actv 
                         else:
-                            print("Error: Data detail karyawan tidak ditemukan.")
+                            print("Error: Data detail dapur tidak ditemukan.")
                             break  
             if conn:
                 conn.close()
@@ -653,25 +653,141 @@ def menu_karyawan(user_session):
             kirim_instansi(actv_id)
         elif pilihan == "4. Keluar":
             logout(user_session)
+
+def lihat_pengiriman_dapur(id_dapur):
+    conn = connect()
+    cur = conn.cursor()
+
+    try:
+        q_paket="""
+            SELECT pk.id_pengiriman, pk.tgl_pegiriman, COUNT(dp.id_detail) as jumlah_jenis_barang
+            FROM pengiriman_ki pk
+            JOIN detail_pengiriman_ki dp USING(id_pengiriman)
+            WHERE pk.id_dapur = %s AND pk.status_verifikasi = 'sedang dikirim'
+            GROUP BY pk.id_pengiriman, pk.tgl_pegiriman
+            ORDER BY pk.tgl_pegiriman ASC
+        """
+        cur.execute(q_paket, (id_dapur,))
+        
+        list_pengiriman = cur.fetchall()
+        
+        if not list_pengiriman:
+            print("Tidak ada pengiriman baru.")
+            input("Tekan Enter untuk kembali...")
+            return
+
+        headers = ["ID Paket", "Tanggal Kirim", "Jml Item"]
+        print(tbl.tabulate(list_pengiriman, headers=headers, tablefmt="fancy_grid"))
+        
+        print("\nLihat isi paket?")
+        print("(Masukkan ID atau tekan Enter untuk batal)")
+        
+        try:
+            input_str = input("Pilih ID: ")
+            if not input_str: return # Jika Enter doang, kembali
+            pilih_paket = int(input_str)
+        except ValueError: 
+            print("Input harus angka!")
+            input("Enter...")
+            return
+
+        # Cek apakah ID ada di list yang ditampilkan tadi
+        cek_valid = [x for x in list_pengiriman if x[0] == pilih_paket]
+        if not cek_valid:
+            print("ID tidak ditemukan di daftar.")
+            input("Enter...")
+            return
+        
+        q_detail = """
+            SELECT t.nama_tumbuhan, dp.kuantitas
+            FROM detail_pengiriman_ki dp
+            JOIN tumbuhan t USING(id_tumbuhan)
+            WHERE dp.id_pengiriman = %s
+        """
+        cur.execute(q_detail, (pilih_paket,))
+        isi_paket = cur.fetchall()
+        
+        print(f"\nIsi Paket ID {pilih_paket}:")
+        print(tbl.tabulate(isi_paket, headers=["Nama Barang", "Qty (Kg)"], tablefmt="simple"))
+            
+        input("\nTekan Enter untuk kembali ke menu...")
+
+    except Exception as e:
+        print("Error:", e)
+        input("Enter...")
+    finally:
+        if conn: conn.close()
+        
+def verifikasi_dapur(id_dapur):
+    conn = connect()
+    cur = conn.cursor()
+    try:
+        judul = [["BARANG MASUK"]]
+        print("\n" + tbl.tabulate(judul, tablefmt="fancy_grid"))
+   
+        q_pending = """
+            SELECT pk.id_pengiriman, pk.tgl_pegiriman, COUNT(dp.id_detail) 
+            FROM pengiriman_ki pk
+            JOIN detail_pengiriman_ki dp USING(id_pengiriman)
+            WHERE pk.id_dapur = %s AND pk.status_verifikasi = 'sedang dikirim'
+            GROUP BY pk.id_pengiriman, pk.tgl_pegiriman
+        """
+        cur.execute(q_pending, (id_dapur,))
+        data = cur.fetchall()
+        
+        if not data:
+            print("Tidak ada kiriman baru.")
+            return
+            
+        print(tbl.tabulate(data, headers=["ID Kirim", "Tanggal", "Jml Item"], tablefmt="fancy_grid"))
+        
+      
+        pilih = input("Masukkan ID Pengiriman untuk diterima: ").strip()
+        if not pilih: 
+            return
+        try:
+            pilih=int(pilih)
+        except ValueError:
+            return  
+                   
+
+        cur.execute("""
+            SELECT t.nama_tumbuhan, dp.kuantitas 
+            FROM detail_pengiriman_ki dp
+            JOIN tumbuhan t USING(id_tumbuhan)
+            WHERE dp.id_pengiriman = %s
+        """, (pilih,))
+        items = cur.fetchall()
+        print(tbl.tabulate(items, headers=["Barang", "Qty"], tablefmt="fancy_grid"))
+        
+        if input("Terima barang ini? (y/n): ").lower() == 'y':
            
+            cur.execute("UPDATE pengiriman_ki SET status_verifikasi = 'Diterima' WHERE id_pengiriman = %s", (pilih,))
+            conn.commit()
+            print("Barang diterima!")
+        else:
+            return
+            
+    except Exception as e:
+        print("Error:", e)
+    finally: conn.close()
 
 def menu_dapur(user_session):
     actv_id = user_session['id_asli'] 
     nama_dapur = user_session['nama']
-    
-    clear()
+
     pilihan = questionary.select(
         f"Selamat datang {nama_dapur}, Silakan pilih menu:",
         choices=[
             "1. Lihat pengiriman",
-            "2. Varifikasi pengiriman",
+            "2. Verifikasi pengiriman",
             "3. Logout"
             ]
         ).ask()
     if pilihan == "1. Lihat pengiriman":
-        print("1")
-    elif pilihan == "2. Varifikasi pengiriman":
-        print("2")
+        lihat_pengiriman_dapur(actv_id)
+    elif pilihan == "2. Verifikasi pengiriman":
+        verifikasi_dapur(actv_id)
     elif pilihan == "3. Logout":
         logout(user_session)
 
