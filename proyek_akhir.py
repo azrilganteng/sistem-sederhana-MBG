@@ -443,7 +443,6 @@ def verifikasi_panen(id_karyawan):
         q_detail = """
             SELECT t.id_tumbuhan, t.nama_tumbuhan, dp.kuantitas
             FROM detail_pengiriman_pk dp 
-            JOIN panen p USING(id_panen)
             JOIN tumbuhan t USING(id_tumbuhan)
             WHERE dp.id_pengiriman = %s
         """
