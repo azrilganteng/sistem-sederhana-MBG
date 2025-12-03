@@ -793,6 +793,53 @@ def menu_dapur(user_session):
     elif pilihan == "3. Logout":
         logout(user_session)
 
+def show_user():
+    conn = connect()
+    cur = conn.cursor()
+
+    try:
+        judul = [["DAFTAR USER"]]
+        print("\n" + tbl.tabulate(judul, tablefmt="fancy_grid"))
+
+        query = """
+            SELECT a.id_akun, a.user_name,a.password, r.nama_role,
+                COALESCE(p.nama_petani, k.nama_karyawan, d.nama_dapur, '-') as nama_asli, a.no_hp, a.alamat
+            FROM akun a
+            JOIN roles r USING (id_role)
+            LEFT JOIN petani p USING(id_akun)
+            LEFT JOIN karyawan k USING(id_akun)
+            LEFT JOIN dapur_instansi d USING(id_akun)
+            ORDER BY a.id_akun ASC
+        """
+        
+        cur.execute(query)
+        data = cur.fetchall()
+
+        if not data:
+            print("Belum ada data user.")
+        else:
+            headers = ["ID", "Username","Password", "Role", "Nama Asli", "No HP", "Alamat"]
+            print(tbl.tabulate(data, headers=headers, tablefmt="fancy_grid",maxcolwidths=[None, None, None, None, 20, None, 30]))
+        pilihan = questionary.select(
+            f"Silakan pilih menu:",
+            choices=[
+                "1. Tambah data user",
+                "2. Update data",
+                "3. Hapus data",
+                "4. Kembali"
+            ]
+        ).ask()
+        if pilihan == "1. Tambah data user":
+            tambah_user()
+        elif pilihan == "2. Update data":
+            update_user()
+
+    except Exception as e:
+        print(f"Terjadi kesalahan: {e}")
+    finally:
+        if conn: conn.close()
+        clear()
+
 def tambah_user():
     conn = connect()
     cur = conn.cursor()
@@ -867,7 +914,61 @@ def tambah_user():
     finally:
         if conn: conn.close()
         input("\nTekan Enter untuk kembali...")
+def update_user():
+    conn = connect()
+    cur = conn.cursor()
+
+    try:
+        print("\n==== UPDATE DATA USER ====")
         
+        id_target = int(input("Masukkan ID Akun yang mau diubah: "))
+
+        query_cek = "SELECT id_akun, id_role FROM akun WHERE id_akun = %s"
+        cur.execute(query_cek, (id_target,))
+        result = cur.fetchone()
+
+        if not result:
+            print("ID Akun tidak ditemukan.")
+            return
+        
+        role_target = result[1]
+
+        print("\n--- Masukkan Data Baru ---")
+        new_username = input("Username Baru : ").strip()
+        new_password = input("Password Baru : ").strip()
+        new_nama     = input("Nama Baru     : ").strip()
+        new_hp       = input("No HP Baru    : ").strip()
+        new_alamat   = input("Alamat Baru   : ").strip()
+
+        if input("\nSimpan perubahan? (y/n): ").lower() != 'y': return
+
+        q_update_akun = """
+            UPDATE akun 
+            SET user_name = %s, password = %s, no_hp = %s, alamat = %s 
+            WHERE id_akun = %s
+        """
+        cur.execute(q_update_akun, (new_username, new_password, new_hp, new_alamat, id_target))
+
+        if role_target == 1:
+            cur.execute("UPDATE petani SET nama_petani = %s WHERE id_akun = %s", (new_nama, id_target))
+            
+        elif role_target == 2:
+            cur.execute("UPDATE karyawan SET nama_karyawan = %s WHERE id_akun = %s", (new_nama, id_target))
+            
+        elif role_target == 3: 
+            cur.execute("UPDATE dapur_instansi SET nama_dapur = %s WHERE id_akun = %s", (new_nama, id_target))
+
+        conn.commit()
+        print("Data berhasil diperbarui!")
+
+    except Exception as e:
+        conn.rollback()
+        print(f"Terjadi kesalahan: {e}")
+    finally:
+        if conn: conn.close()
+        input("\nTekan Enter untuk kembali...")
+
+
 def history_petani_karyawan():
     conn = connect()
     cur = conn.cursor()
@@ -909,19 +1010,19 @@ def menu_admin(user_session):
     nama_admin=user_session['nama']
 
     while True:
-        clear()
+     
         pilihan = questionary.select(
             f"Selamat datang {nama_admin}, Silakan pilih menu:",
             choices=[
-                "1. Tambah data user",
+                "1. Lihat data user",
                 "2. Lihat pengiriman petani to karyawan",
                 "3. Lihat pengiriman karyawan to instansi",
                 "4. Keluar"
             ]
         ).ask()
 
-        if pilihan == "1. Tambah data user":
-           tambah_user()
+        if pilihan == "1. Lihat data user":
+            show_user()
         elif pilihan == "2. Lihat pengiriman petani to karyawan":
             history_petani_karyawan()
         elif pilihan ==  "3. Lihat pengiriman karyawan to instansi":
@@ -929,7 +1030,6 @@ def menu_admin(user_session):
 
         elif pilihan == "4. Keluar":
             logout(user_session)
-
         else:
             print("Pilihan tidak valid!")
 
