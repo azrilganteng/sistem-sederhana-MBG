@@ -16,7 +16,7 @@ def connect():
         host= "localhost",
         database= "SISTEM_MBG",
         user= "postgres",
-        password = "12345678",
+        password = "12345",
         port= ""
         )
         return conn
@@ -443,6 +443,7 @@ def verifikasi_panen(id_karyawan):
         q_detail = """
             SELECT t.id_tumbuhan, t.nama_tumbuhan, dp.kuantitas
             FROM detail_pengiriman_pk dp 
+            JOIN panen p USING(id_panen)
             JOIN tumbuhan t USING(id_tumbuhan)
             WHERE dp.id_pengiriman = %s
         """
@@ -774,23 +775,31 @@ def verifikasi_dapur(id_dapur):
     finally: conn.close()
 
 def menu_dapur(user_session):
+    clear()
+    
     actv_id = user_session['id_asli'] 
     nama_dapur = user_session['nama']
 
-    pilihan = questionary.select(
-        f"Selamat datang {nama_dapur}, Silakan pilih menu:",
-        choices=[
-            "1. Lihat pengiriman",
-            "2. Verifikasi pengiriman",
-            "3. Logout"
-            ]
-        ).ask()
-    if pilihan == "1. Lihat pengiriman":
-        lihat_pengiriman_dapur(actv_id)
-    elif pilihan == "2. Verifikasi pengiriman":
-        verifikasi_dapur(actv_id)
-    elif pilihan == "3. Logout":
-        logout(user_session)
+    while True:
+        pilihan = questionary.select(
+            f"Selamat datang {nama_dapur}, Silakan pilih menu:",
+            choices=[
+                "1. Lihat pengiriman",
+                "2. Verifikasi pengiriman",
+                "3. Logout"
+                ]
+            ).ask()
+        
+        if pilihan == "1. Lihat pengiriman":
+            clear()
+            lihat_pengiriman_dapur(actv_id)
+        elif pilihan == "2. Verifikasi pengiriman":
+            clear()
+            verifikasi_dapur(actv_id)
+        elif pilihan == "3. Logout":
+            clear()
+            logout(user_session)
+            break
 
 def tambah_user():
     conn = connect()
@@ -883,7 +892,7 @@ def history_petani_karyawan():
                 FROM pengiriman_pk p
                 JOIN detail_pengiriman_pk dp USING(id_pengiriman)
                 JOIN petani pet USING(id_petani)
-                LEFT JOIN karyawan kar USING(id_karyawan) -- Pakai LEFT JOIN jaga-jaga kalau belum diverifikasi (karyawan null)
+                LEFT JOIN karyawan kar USING(id_karyawan)
                 JOIN panen pa ON dp.id_panen = pa.id_panen
                 JOIN tumbuhan t ON pa.id_tumbuhan = t.id_tumbuhan
                 WHERE EXTRACT(MONTH FROM p.tgl_pengiriman) = %s
@@ -892,7 +901,11 @@ def history_petani_karyawan():
 
         cur.execute(query, (bulan,))
         data = cur.fetchall()
-
+        
+        if not data:
+            print("Tidak ada data pengiriman untuk bulan tersebut.")
+            return
+        
         headers = ["Petani", "Karyawan (ACC)", "Barang", "Qty (Kg)","Tanggal", "Status"]
         print(tbl.tabulate(data, headers=headers, tablefmt="fancy_grid"))
     
@@ -901,6 +914,51 @@ def history_petani_karyawan():
     finally:
         if conn:
             conn.close()
+
+def history_karyawan_dapur():
+    conn = connect()
+    cur = conn.cursor()
+
+    try:
+        bulan = int(input("Masukkan angka bulan (1-12): "))
+
+        if bulan < 1 or bulan > 12:
+            print("Bulan harus 1-12.")
+            return
+
+        query = """
+        SELECT pk.tgl_pegiriman, 
+               kar.nama_karyawan, 
+               dpur.nama_dapur, 
+               t.nama_tumbuhan, 
+               dp.kuantitas, 
+               pk.status_verifikasi
+        FROM pengiriman_ki pk
+        JOIN detail_pengiriman_ki dp USING(id_pengiriman)
+        JOIN karyawan kar USING(id_karyawan)
+        JOIN dapur_instansi dpur USING(id_dapur)
+        JOIN tumbuhan t USING(id_tumbuhan)
+        WHERE EXTRACT(MONTH FROM pk.tgl_pegiriman) = %s
+        ORDER BY pk.tgl_pegiriman ASC
+        """
+
+        cur.execute(query, (bulan,))
+        data = cur.fetchall()
+
+        if not data:
+            print("Tidak ada data pengiriman KD untuk bulan tersebut.")
+            return
+
+        headers = ["Tanggal", "Karyawan", "Dapur", "Barang", "Qty (Kg)", "Status"]
+        print(tbl.tabulate(data, headers=headers, tablefmt="fancy_grid"))
+        print()
+
+    except Exception as e:
+        print("Terjadi kesalahan:", e)
+    finally:
+        if conn:
+            conn.close()
+
 
 def menu_admin(user_session):
 
@@ -920,13 +978,21 @@ def menu_admin(user_session):
         ).ask()
 
         if pilihan == "1. Tambah data user":
-           tambah_user()
+            clear()
+            tambah_user()
+
         elif pilihan == "2. Lihat pengiriman petani to karyawan":
+            clear()
             history_petani_karyawan()
+            input("Tekan Enter untuk kembali...")
+            
         elif pilihan ==  "3. Lihat pengiriman karyawan to instansi":
-            print("test")
+            clear()
+            history_karyawan_dapur()
+            input("Tekan Enter untuk kembali...")
 
         elif pilihan == "4. Keluar":
+            clear()
             logout(user_session)
 
         else:
