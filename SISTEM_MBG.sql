@@ -111,4 +111,6 @@ nama_admin VARCHAR(50) not null,
 id_akun INTEGER REFERENCES akun(id_akun)
 )
 insert into admin(nama_admin,id_akun) values('joko hendrawi',8)
-SELECT * from dapur_instansi
+SELECT * from roles
+SELECT * FROM dapur_instansi WHERE id_akun = 3;
+SELECT * FROM akun WHERE id_role <> 4 
