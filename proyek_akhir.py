@@ -16,7 +16,7 @@ def connect():
         host= "localhost",
         database= "SISTEM_MBG",
         user= "postgres",
-        password = "12345",
+        password = "12345678",
         port= ""
         )
         return conn
@@ -802,51 +802,57 @@ def menu_dapur(user_session):
             break
 
 def show_user():
-    conn = connect()
-    cur = conn.cursor()
-
-    try:
-        judul = [["DAFTAR USER"]]
-        print("\n" + tbl.tabulate(judul, tablefmt="fancy_grid"))
-
-        query = """
-            SELECT a.id_akun, a.user_name,a.password, r.nama_role,
-                COALESCE(p.nama_petani, k.nama_karyawan, d.nama_dapur, '-') as nama_asli, a.no_hp, a.alamat
-            FROM akun a
-            JOIN roles r USING (id_role)
-            LEFT JOIN petani p USING(id_akun)
-            LEFT JOIN karyawan k USING(id_akun)
-            LEFT JOIN dapur_instansi d USING(id_akun)
-            ORDER BY a.id_akun ASC
-        """
-        
-        cur.execute(query)
-        data = cur.fetchall()
-
-        if not data:
-            print("Belum ada data user.")
-        else:
-            headers = ["ID", "Username","Password", "Role", "Nama Asli", "No HP", "Alamat"]
-            print(tbl.tabulate(data, headers=headers, tablefmt="fancy_grid",maxcolwidths=[None, None, None, None, 20, None, 30]))
-        pilihan = questionary.select(
-            f"Silakan pilih menu:",
-            choices=[
-                "1. Tambah data user",
-                "2. Update data",
-                "3. Hapus data",
-                "4. Kembali"
-            ]
-        ).ask()
-        if pilihan == "1. Tambah data user":
-            tambah_user()
-        elif pilihan == "2. Update data":
-            update_user()
-
-    except Exception as e:
-        print(f"Terjadi kesalahan: {e}")
-    finally:
-        if conn: conn.close()
+    while True:
         clear()
+        conn = connect()
+        cur = conn.cursor()
+
+        try:
+            judul = [["DAFTAR USER"]]
+            print("\n" + tbl.tabulate(judul, tablefmt="fancy_grid"))
+
+            query = """
+                SELECT a.id_akun, a.user_name,a.password, r.nama_role,
+                    COALESCE(p.nama_petani, k.nama_karyawan, d.nama_dapur, '-') as nama_asli, a.no_hp, a.alamat
+                FROM akun a
+                JOIN roles r USING (id_role)
+                LEFT JOIN petani p USING(id_akun)
+                LEFT JOIN karyawan k USING(id_akun)
+                LEFT JOIN dapur_instansi d USING(id_akun)
+                ORDER BY a.id_akun ASC
+            """
+            
+            cur.execute(query)
+            data = cur.fetchall()
+
+            if not data:
+                print("Belum ada data user.")
+            else:
+                headers = ["ID", "Username","Password", "Role", "Nama Asli", "No HP", "Alamat"]
+                print(tbl.tabulate(data, headers=headers, tablefmt="fancy_grid",maxcolwidths=[None, None, None, None, 20, None, 30]))
+            pilihan = questionary.select(
+                f"Silakan pilih menu:",
+                choices=[
+                    "1. Tambah data user",
+                    "2. Update data",
+                    "3. Hapus data",
+                    "4. Kembali"
+                ]
+            ).ask()
+            if pilihan == "1. Tambah data user":
+                tambah_user()
+            elif pilihan == "2. Update data":
+                update_user()
+                clear()
+            elif pilihan == "4. Kembali":
+                break
+                
+
+        except Exception as e:
+            print(f"Terjadi kesalahan: {e}")
+        finally:
+            if conn: conn.close()
+
 
 def tambah_user():
     conn = connect()
@@ -922,6 +928,7 @@ def tambah_user():
     finally:
         if conn: conn.close()
         input("\nTekan Enter untuk kembali...")
+
 def update_user():
     conn = connect()
     cur = conn.cursor()
@@ -1062,12 +1069,13 @@ def history_karyawan_dapur():
 
 
 def menu_admin(user_session):
-
+   
     # actv_id = user_session['id_asli']
     nama_admin=user_session['nama']
 
     while True:
-     
+        clear()
+
         pilihan = questionary.select(
             f"Selamat datang {nama_admin}, Silakan pilih menu:",
             choices=[
@@ -1078,15 +1086,8 @@ def menu_admin(user_session):
             ]
         ).ask()
 
-<<<<<<< HEAD
-        if pilihan == "1. Tambah data user":
-            clear()
-            tambah_user()
-
-=======
         if pilihan == "1. Lihat data user":
             show_user()
->>>>>>> da4b977d5ae86f0e5e55eff39e3da3e34047091e
         elif pilihan == "2. Lihat pengiriman petani to karyawan":
             clear()
             history_petani_karyawan()
