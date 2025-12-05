@@ -16,7 +16,7 @@ def connect():
         host= "localhost",
         database= "SISTEM_MBG",
         user= "postgres",
-        password = "12345",
+        password = "12345678",
         port= ""
         )
         return conn
@@ -802,12 +802,14 @@ def menu_dapur(user_session):
             break
 
 def show_user():
-    conn = connect()
-    cur = conn.cursor()
+    while True:
+        clear()
+        conn = connect()
+        cur = conn.cursor()
 
-    try:
-        judul = [["DAFTAR USER"]]
-        print("\n" + tbl.tabulate(judul, tablefmt="fancy_grid"))
+        try:
+            judul = [["DAFTAR USER"]]
+            print("\n" + tbl.tabulate(judul, tablefmt="fancy_grid"))
 
         query = """
             SELECT a.id_akun, a.user_name,a.password, r.nama_role,
@@ -844,11 +846,11 @@ def show_user():
         elif pilihan == "3. Hapus data":
             hapus_user()   
 
-    except Exception as e:
-        print(f"Terjadi kesalahan: {e}")
-    finally:
-        if conn: conn.close()
-        clear()
+        except Exception as e:
+            print(f"Terjadi kesalahan: {e}")
+        finally:
+            if conn: conn.close()
+
 
 def tambah_user():
     conn = connect()
@@ -924,6 +926,7 @@ def tambah_user():
     finally:
         if conn: conn.close()
         input("\nTekan Enter untuk kembali...")
+
 def update_user():
     conn = connect()
     cur = conn.cursor()
@@ -1111,7 +1114,7 @@ def hapus_user():
             conn.close()
 
 def menu_admin(user_session):
-
+   
     # actv_id = user_session['id_asli']
     nama_admin=user_session['nama']
 
@@ -1127,6 +1130,12 @@ def menu_admin(user_session):
             ]
         ).ask()
 
+<<<<<<< HEAD
+        if pilihan == "1. Tambah data user":
+            clear()
+            tambah_user()
+
+=======
         if pilihan == "1. Lihat data user":
             clear()
             show_user()
