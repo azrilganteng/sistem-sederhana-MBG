@@ -454,7 +454,7 @@ def verifikasi_panen(id_karyawan):
         if confirm != 'y': return
 
         print("Sedang memproses...")
-        ID_TRANSAKSI_MASUK = 1 
+        ID_TRANSAKSI_MASUK = 1
         tgl_hari_ini = date.today()
         time.sleep(1)
 
@@ -811,7 +811,7 @@ def show_user():
 
         query = """
             SELECT a.id_akun, a.user_name,a.password, r.nama_role,
-                COALESCE(p.nama_petani, k.nama_karyawan, d.nama_dapur, '-') as nama_asli, a.no_hp, a.alamat
+                COALESCE(p.nama_petani, k.nama_karyawan, d.nama_dapur, '-') as nama_asli, a.no_hp, a.alamat, a.status_aktif
             FROM akun a
             JOIN roles r USING (id_role)
             LEFT JOIN petani p USING(id_akun)
@@ -841,6 +841,8 @@ def show_user():
             tambah_user()
         elif pilihan == "2. Update data":
             update_user()
+        elif pilihan == "3. Hapus data":
+            hapus_user()   
 
     except Exception as e:
         print(f"Terjadi kesalahan: {e}")
@@ -1060,6 +1062,53 @@ def history_karyawan_dapur():
         if conn:
             conn.close()
 
+def hapus_user():
+    conn = connect()
+    cur = conn.cursor()
+
+    try:
+        print("\n===== NON-AKTIFKAN AKUN USER =====")
+        
+        # Admin sudah melihat daftar user melalui show_akun()
+        id_hapus = input("Masukkan ID Akun yang ingin dinonaktifkan: ").strip()
+
+        # Cek apakah ID akun ada dan statusnya 1 (aktif)
+        cur.execute("SELECT id_akun, user_name, status_aktif FROM akun WHERE id_akun = %s", (id_hapus,))
+        akun = cur.fetchone()
+
+        if not akun:
+            print("ID akun tidak ditemukan!")
+            input("Tekan Enter untuk kembali...")
+            return
+
+        if akun[2] == 0:
+            print("Akun sudah NON-AKTIF sebelumnya.")
+            input("Tekan Enter untuk kembali...")
+            return
+
+        # Konfirmasi
+        print(f"\nAkun ditemukan: {akun[1]} (ID: {akun[0]}) - Status: AKTIF")
+        yakin = input("Yakin ingin menonaktifkan akun ini? (y/n): ").lower()
+
+        if yakin != "y":
+            print("Pembatalan berhasil! Akun tidak dihapus.")
+            input("Tekan Enter untuk kembali...")
+            return
+
+        # Update status → nonaktif (0)
+        cur.execute("UPDATE akun SET status_aktif = 0 WHERE id_akun = %s", (id_hapus,))
+        conn.commit()
+
+        print("\nAkun berhasil dinonaktifkan!")
+        input("Tekan Enter untuk kembali...")
+
+    except Exception as e:
+        conn.rollback()
+        print("Terjadi kesalahan:", e)
+        input("Tekan Enter...")
+    finally:
+        if conn:
+            conn.close()
 
 def menu_admin(user_session):
 
@@ -1067,7 +1116,7 @@ def menu_admin(user_session):
     nama_admin=user_session['nama']
 
     while True:
-     
+        clear()
         pilihan = questionary.select(
             f"Selamat datang {nama_admin}, Silakan pilih menu:",
             choices=[
@@ -1078,15 +1127,10 @@ def menu_admin(user_session):
             ]
         ).ask()
 
-<<<<<<< HEAD
-        if pilihan == "1. Tambah data user":
-            clear()
-            tambah_user()
-
-=======
         if pilihan == "1. Lihat data user":
+            clear()
             show_user()
->>>>>>> da4b977d5ae86f0e5e55eff39e3da3e34047091e
+
         elif pilihan == "2. Lihat pengiriman petani to karyawan":
             clear()
             history_petani_karyawan()
