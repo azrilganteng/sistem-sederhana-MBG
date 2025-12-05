@@ -111,6 +111,7 @@ nama_admin VARCHAR(50) not null,
 id_akun INTEGER REFERENCES akun(id_akun)
 )
 insert into admin(nama_admin,id_akun) values('joko hendrawi',8)
-SELECT * from roles
+SELECT * from akun
 SELECT * FROM dapur_instansi WHERE id_akun = 3;
 SELECT * FROM akun WHERE id_role <> 4 
+alter table akun add column status_aktif_akun integer default 1

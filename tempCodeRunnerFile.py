@@ -1,1 +1,1 @@
-history_petani_karyawan
+def menu_admin(

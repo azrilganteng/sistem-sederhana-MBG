@@ -100,6 +100,7 @@ def login():
                         else:
                             print("Error: Data detail karyawan tidak ditemukan.")
                             break
+
                     elif result_role == 3: 
                         dapur=("SELECT id_dapur, nama_dapur FROM dapur_instansi WHERE id_akun = %s")
                         cur.execute(dapur,(result_id,))
@@ -111,7 +112,10 @@ def login():
                             
                             menu_dapur(user_actv)
                             return user_actv
-                        
+                        else:
+                            print("Error: Data detail dapur tidak ditemukan.")
+                            break
+
                     elif result_role == 4: 
                             admin=("SELECT id_admin, nama_admin FROM admin WHERE id_akun = %s")
                             cur.execute(admin,(result_id,))
@@ -152,6 +156,7 @@ def logout(user_session):
             time.sleep(1)
             clear()
             exit()
+
         elif confirm == "2. Tidak":
             judul = [["HOREEEE!!! GAJADI KELUAR"]]
             print("\n" + tbl.tabulate(judul, tablefmt="fancy_grid"))
@@ -220,9 +225,23 @@ def update(id_petani):
             except ValueError:
                 print("Kuantitas harus angka!")
                 return
+            cek_update = """SELECT p.status_verifikasi FROM detail_pengiriman_pk dp
+                JOIN pengiriman_pk p USING(id_pengiriman)
+                WHERE dp.id_panen = %s"""
+            cur.execute(cek_update, (id_update,))
+            status = cur.fetchone()
+
+            if status and status[0] == "Diterima":
+                print("Tidak dapat mengubah, pengiriman sudah diverifikasi oleh karyawan.")
+                return
 
             update_qty = """UPDATE panen SET kuantitas = %s WHERE id_panen = %s"""
             cur.execute(update_qty, (qty_baru, id_update))
+
+            update_detail = """UPDATE detail_pengiriman_pk
+                SET kuantitas = %s
+                WHERE id_panen = %s"""
+            cur.execute(update_detail, (qty_baru, id_update))
 
             conn.commit()
             print("Data berhasil diperbarui!")
@@ -288,8 +307,9 @@ def tambah_panen(id_petani):
        
         while True:
             nama_tumbuhan = input(f"Item ke-{len(banyak)+1} Nama Tumbuhan: ").strip().lower()
-            
-            if nama_tumbuhan == 'stop':
+            if not nama_tumbuhan:
+                return
+            elif nama_tumbuhan == 'stop':
                 break
             cur.execute("SELECT id_tumbuhan FROM tumbuhan WHERE nama_tumbuhan ILIKE %s", (nama_tumbuhan,))
             hasil = cur.fetchone()
@@ -312,8 +332,17 @@ def tambah_panen(id_petani):
         if not banyak:
             print("Tidak ada yang disimpan.")
             return
-
-        print(f"\nMenyimpan {len(banyak)} item ke database...")
+        fix = questionary.select(
+                        "Yakin untuk menyimpan, [kamu hanya bisa mengubah kuantitas nantinya]",
+                        choices=[
+                            "1. Yakin dan Simpan",
+                            "2. Tidak"
+                            ]
+                    ).ask()
+        if fix == "1. Yakin dan Simpan":
+            print(f"\nMenyimpan {len(banyak)} item ke database...")
+        else:
+            return
         
         tgl = input("Tanggal (Enter untuk hari ini): ")
         if not tgl: 
@@ -347,9 +376,10 @@ def tambah_panen(id_petani):
             """
             cur.execute(q_detail, (id_pengiriman, id_panen_baru, item[2]))
 
-        
+        time.sleep(2)
         conn.commit()
         print(f"SUKSES! Paket ID {id_pengiriman} berisi {len(banyak)} barang telah dikirim.")
+        
 
     except Exception as e:
         conn.rollback() 
@@ -371,12 +401,12 @@ def menu_petani(user_session):
                 "1. Input & Kirim Data Panen",
                 "2. Lihat & Update Riwayat Panen",
                 "3. Keluar (Logout)"
-            ]
-        ).ask()
+                ]
+            ).ask()
 
         if pilihan == "1. Input & Kirim Data Panen":
             tambah_panen(actv_id)
-            input("Tekan Enter untuk kembali...") 
+            
             
         elif pilihan == "2. Lihat & Update Riwayat Panen":
             show(actv_id, user_session)
@@ -384,6 +414,7 @@ def menu_petani(user_session):
 
         elif pilihan == "3. Keluar (Logout)":
             logout(user_session)
+
         
 #VERIFIKASI OLEH KARYAWAN
 def verifikasi_panen(id_karyawan):
@@ -405,6 +436,7 @@ def verifikasi_panen(id_karyawan):
         """
         cur.execute(q_pending)
         list_pending = cur.fetchall()
+        
 
         if not list_pending:
             print("Tidak ada data pending.")
@@ -589,7 +621,7 @@ def kirim_instansi(id_karyawan):
                     'qty': qty,
                     'gudang': gudang_sumber
                 })
-                print("Masuk keranjang.")
+                print("Tersimpan")
                 
             except ValueError:
                 print("Input salah.")
@@ -775,31 +807,32 @@ def verifikasi_dapur(id_dapur):
     finally: conn.close()
 
 def menu_dapur(user_session):
-    clear()
     
     actv_id = user_session['id_asli'] 
     nama_dapur = user_session['nama']
 
     while True:
+        clear()
+        print("\n")
         pilihan = questionary.select(
             f"Selamat datang {nama_dapur}, Silakan pilih menu:",
             choices=[
                 "1. Lihat pengiriman",
                 "2. Verifikasi pengiriman",
-                "3. Logout"
+                "3. Keluar (Logout)"
                 ]
             ).ask()
         
         if pilihan == "1. Lihat pengiriman":
-            clear()
             lihat_pengiriman_dapur(actv_id)
+            input("Tekan Enter untuk kembali...") 
+
         elif pilihan == "2. Verifikasi pengiriman":
-            clear()
             verifikasi_dapur(actv_id)
-        elif pilihan == "3. Logout":
-            clear()
+            input("Tekan Enter untuk kembali...") 
+
+        elif pilihan == "3. Keluar (Logout)":
             logout(user_session)
-            break
 
 def show_user():
     while True:
@@ -811,43 +844,44 @@ def show_user():
             judul = [["DAFTAR USER"]]
             print("\n" + tbl.tabulate(judul, tablefmt="fancy_grid"))
 
-        query = """
-            SELECT a.id_akun, a.user_name,a.password, r.nama_role,
-                COALESCE(p.nama_petani, k.nama_karyawan, d.nama_dapur, '-') as nama_asli, a.no_hp, a.alamat, a.status_aktif
-            FROM akun a
-            JOIN roles r USING (id_role)
-            LEFT JOIN petani p USING(id_akun)
-            LEFT JOIN karyawan k USING(id_akun)
-            LEFT JOIN dapur_instansi d USING(id_akun)
-            ORDER BY a.id_akun ASC
-        """
-        
-        cur.execute(query)
-        data = cur.fetchall()
+            query = """
+                SELECT a.id_akun, a.user_name,a.password, r.nama_role,
+                    COALESCE(p.nama_petani, k.nama_karyawan, d.nama_dapur, '-') as nama_asli, a.no_hp, a.alamat, a.status_aktif
+                FROM akun a
+                JOIN roles r USING (id_role)
+                LEFT JOIN petani p USING(id_akun)
+                LEFT JOIN karyawan k USING(id_akun)
+                LEFT JOIN dapur_instansi d USING(id_akun)
+                where id_role <> 4
+                ORDER BY a.id_akun ASC
+            """
+            
+            cur.execute(query)
+            data = cur.fetchall()
 
-        if not data:
-            print("Belum ada data user.")
-        else:
-            headers = ["ID", "Username","Password", "Role", "Nama Asli", "No HP", "Alamat"]
-            print(tbl.tabulate(data, headers=headers, tablefmt="fancy_grid",maxcolwidths=[None, None, None, None, 20, None, 30]))
-        pilihan = questionary.select(
-            f"Silakan pilih menu:",
-            choices=[
-                "1. Tambah data user",
-                "2. Update data",
-                "3. Hapus data",
-                "4. Kembali"
-            ]
-        ).ask()
-        if pilihan == "1. Tambah data user":
-            tambah_user()
-        elif pilihan == "2. Update data":
-            update_user()
-        elif pilihan == "3. Hapus data":
-            hapus_user()   
+            if not data:
+                print("Belum ada data user.")
+            else:
+                headers = ["ID", "Username","Password", "Role", "Nama Asli", "No HP", "Alamat","Status"]
+                print(tbl.tabulate(data, headers=headers, tablefmt="fancy_grid",maxcolwidths=[None, None, None, None, 20, None, 30,None]))
+            pilihan = questionary.select(
+                f"Silakan pilih menu:",
+                choices=[
+                    "1. Tambah data user",
+                    "2. Update data",
+                    "3. Hapus data",
+                    "4. Kembali"
+                ]
+            ).ask()
+            if pilihan == "1. Tambah data user":
+                tambah_user()
+            elif pilihan == "2. Update data":
+                update_user()
+            elif pilihan == "3. Hapus data":
+                hapus_user()   
 
         except Exception as e:
-            print(f"Terjadi kesalahan: {e}")
+            print("Terjadi kesalahan",e)
         finally:
             if conn: conn.close()
 
@@ -1072,10 +1106,8 @@ def hapus_user():
     try:
         print("\n===== NON-AKTIFKAN AKUN USER =====")
         
-        # Admin sudah melihat daftar user melalui show_akun()
         id_hapus = input("Masukkan ID Akun yang ingin dinonaktifkan: ").strip()
 
-        # Cek apakah ID akun ada dan statusnya 1 (aktif)
         cur.execute("SELECT id_akun, user_name, status_aktif FROM akun WHERE id_akun = %s", (id_hapus,))
         akun = cur.fetchone()
 
@@ -1089,7 +1121,6 @@ def hapus_user():
             input("Tekan Enter untuk kembali...")
             return
 
-        # Konfirmasi
         print(f"\nAkun ditemukan: {akun[1]} (ID: {akun[0]}) - Status: AKTIF")
         yakin = input("Yakin ingin menonaktifkan akun ini? (y/n): ").lower()
 
@@ -1098,7 +1129,6 @@ def hapus_user():
             input("Tekan Enter untuk kembali...")
             return
 
-        # Update status → nonaktif (0)
         cur.execute("UPDATE akun SET status_aktif = 0 WHERE id_akun = %s", (id_hapus,))
         conn.commit()
 
@@ -1130,12 +1160,6 @@ def menu_admin(user_session):
             ]
         ).ask()
 
-<<<<<<< HEAD
-        if pilihan == "1. Tambah data user":
-            clear()
-            tambah_user()
-
-=======
         if pilihan == "1. Lihat data user":
             clear()
             show_user()
