@@ -52,7 +52,7 @@ def login():
             conn = connect()
             with conn.cursor() as cur: 
                 check_akun = """SELECT id_akun, id_role FROM akun
-                                WHERE user_name = %s AND password = %s"""
+                                where user_name = %s AND password = %s"""
                 cur.execute(check_akun, (Username, password))
                 result = cur.fetchone()
                 
@@ -72,7 +72,7 @@ def login():
                     }
 
                     if result_role == 1:
-                        petani=("SELECT id_petani, nama_petani FROM petani WHERE id_akun = %s")
+                        petani=("SELECT id_petani, nama_petani FROM petani where id_akun = %s")
                         cur.execute(petani,(result_id,))
                         data_petani = cur.fetchone()
                         
@@ -87,7 +87,7 @@ def login():
                             break 
                     
                     elif result_role == 2: 
-                        karyawan=("SELECT id_karyawan, nama_karyawan FROM karyawan WHERE id_akun = %s")
+                        karyawan=("SELECT id_karyawan, nama_karyawan FROM karyawan where id_akun = %s")
                         cur.execute(karyawan,(result_id,))
                         data_karyawan = cur.fetchone()
                         
@@ -102,7 +102,7 @@ def login():
                             break
 
                     elif result_role == 3: 
-                        dapur=("SELECT id_dapur, nama_dapur FROM dapur_instansi WHERE id_akun = %s")
+                        dapur=("SELECT id_dapur, nama_dapur FROM dapur_instansi where id_akun = %s")
                         cur.execute(dapur,(result_id,))
                         data_dapur = cur.fetchone()
                         
@@ -117,7 +117,7 @@ def login():
                             break
 
                     elif result_role == 4: 
-                            admin=("SELECT id_admin, nama_admin FROM admin WHERE id_akun = %s")
+                            admin=("SELECT id_admin, nama_admin FROM admin where id_akun = %s")
                             cur.execute(admin,(result_id,))
                             data_admin = cur.fetchone()
                             
@@ -211,7 +211,7 @@ def update(id_petani):
         with conn.cursor() as cur:
             id_update = int(input("Masukkan ID yang mau di ubah: "))
 
-            check_id = "SELECT id_tumbuhan FROM panen WHERE id_panen = %s AND id_petani = %s"
+            check_id = "SELECT id_tumbuhan FROM panen where id_panen = %s AND id_petani = %s"
             cur.execute(check_id, (id_update, id_petani))
 
             find=cur.fetchone()
@@ -226,8 +226,8 @@ def update(id_petani):
                 print("Kuantitas harus angka!")
                 return
             cek_update = """SELECT p.status_verifikasi FROM detail_pengiriman_pk dp
-                JOIN pengiriman_pk p USING(id_pengiriman)
-                WHERE dp.id_panen = %s"""
+                join pengiriman_pk p USING(id_pengiriman)
+                where dp.id_panen = %s"""
             cur.execute(cek_update, (id_update,))
             status = cur.fetchone()
 
@@ -235,21 +235,23 @@ def update(id_petani):
                 print("Tidak dapat mengubah, pengiriman sudah diverifikasi oleh karyawan.")
                 return
 
-            update_qty = """UPDATE panen SET kuantitas = %s WHERE id_panen = %s"""
+            update_qty = """UPDATE panen SET kuantitas = %s where id_panen = %s"""
             cur.execute(update_qty, (qty_baru, id_update))
 
             update_detail = """UPDATE detail_pengiriman_pk
                 SET kuantitas = %s
-                WHERE id_panen = %s"""
+                where id_panen = %s"""
             cur.execute(update_detail, (qty_baru, id_update))
 
             conn.commit()
             print("Data berhasil diperbarui!")
+            input("\nTekan Enter untuk kembali ke menu...")
         
     except Exception as e:
         print("Terjadi kesalahan:", e)
 
 def show(id_petani,user_session):
+    clear()
     nama_petani=user_session['nama']
     try:
         conn = connect()
@@ -258,8 +260,8 @@ def show(id_petani,user_session):
             print("\n" + tbl.tabulate(judul, tablefmt="fancy_grid"))
             read_data="""SELECT pa.id_panen,p.nama_petani,t.nama_tumbuhan,pa.kuantitas,pa.tgl_panen
                 from petani p join panen pa using(id_petani)
-                JOIN tumbuhan t using(id_tumbuhan)
-                WHERE p.id_petani = %s
+                join tumbuhan t using(id_tumbuhan)
+                where p.id_petani = %s
                 ORDER BY pa.id_panen"""
             cur.execute(read_data,(id_petani,))
             show=cur.fetchall()
@@ -283,6 +285,7 @@ def show(id_petani,user_session):
                             
                     elif pilihan == "2. Kembali ke menu":
                         menu_petani(user_session)
+                        
                 except ValueError:
                     print("ID harus berupa angka.")
                     return
@@ -296,6 +299,7 @@ def show(id_petani,user_session):
         return None         
 # ADD PANEN
 def tambah_panen(id_petani):
+    clear()
     print("\n(Ketik 'stop' di nama tumbuhan jika sudah selesai)\n")
 
     conn = connect() 
@@ -311,7 +315,7 @@ def tambah_panen(id_petani):
                 return
             elif nama_tumbuhan == 'stop':
                 break
-            cur.execute("SELECT id_tumbuhan FROM tumbuhan WHERE nama_tumbuhan ILIKE %s", (nama_tumbuhan,))
+            cur.execute("SELECT id_tumbuhan FROM tumbuhan where nama_tumbuhan ILIKE %s", (nama_tumbuhan,))
             hasil = cur.fetchone()
 
             if hasil:
@@ -379,7 +383,7 @@ def tambah_panen(id_petani):
         time.sleep(2)
         conn.commit()
         print(f"SUKSES! Paket ID {id_pengiriman} berisi {len(banyak)} barang telah dikirim.")
-        
+        input("\nTekan Enter untuk kembali ke menu...")
 
     except Exception as e:
         conn.rollback() 
@@ -389,11 +393,11 @@ def tambah_panen(id_petani):
 
 #PETANI FUNCTION
 def menu_petani(user_session):
+    clear()
     actv_id = user_session['id_asli']
     nama_petani = user_session['nama']
 
     while True:
-        clear()
         print("\n") 
         pilihan = questionary.select(
             f"Selamat datang {nama_petani}, Silakan pilih menu:",
@@ -405,15 +409,17 @@ def menu_petani(user_session):
             ).ask()
 
         if pilihan == "1. Input & Kirim Data Panen":
+            clear()
             tambah_panen(actv_id)
             
-            
         elif pilihan == "2. Lihat & Update Riwayat Panen":
+            clear()
             show(actv_id, user_session)
-            input("Tekan Enter untuk kembali...")
 
         elif pilihan == "3. Keluar (Logout)":
+            clear()
             logout(user_session)
+            
 
         
 #VERIFIKASI OLEH KARYAWAN
@@ -428,9 +434,9 @@ def verifikasi_panen(id_karyawan):
         q_pending = """
             SELECT p.id_pengiriman, pet.nama_petani, p.tgl_pengiriman, COUNT(dp.id_detail)
             FROM pengiriman_pk p
-            JOIN petani pet USING(id_petani)
-            JOIN detail_pengiriman_pk dp USING(id_pengiriman)
-            WHERE p.status_verifikasi = 'sedang dikirim' 
+            join petani pet USING(id_petani)
+            join detail_pengiriman_pk dp USING(id_pengiriman)
+            where p.status_verifikasi = 'sedang dikirim' 
             GROUP BY p.id_pengiriman, pet.nama_petani, p.tgl_pengiriman
             ORDER BY p.tgl_pengiriman ASC
         """
@@ -451,7 +457,7 @@ def verifikasi_panen(id_karyawan):
         if not pilih:
             return
 
-        cur.execute("SELECT id_pengiriman FROM pengiriman_pk WHERE id_pengiriman = %s AND status_verifikasi = 'sedang dikirim'", (pilih,))
+        cur.execute("SELECT id_pengiriman FROM pengiriman_pk where id_pengiriman = %s AND status_verifikasi = 'sedang dikirim'", (pilih,))
         if not cur.fetchone():
             print("ID tidak valid.")
             return
@@ -466,7 +472,7 @@ def verifikasi_panen(id_karyawan):
         try:
             pilih_gudang = int(input("Simpan ke Gudang mana? (Pilih ID): "))
 
-            cur.execute("SELECT id_gudang FROM gudang WHERE id_gudang = %s", (pilih_gudang,))
+            cur.execute("SELECT id_gudang FROM gudang where id_gudang = %s", (pilih_gudang,))
             if not cur.fetchone():
                 print("Gudang tidak ditemukan.")
                 return
@@ -475,9 +481,9 @@ def verifikasi_panen(id_karyawan):
         q_detail = """
             SELECT pa.id_tumbuhan, t.nama_tumbuhan, pa.kuantitas
             FROM detail_pengiriman_pk dp
-            JOIN panen pa USING(id_panen)
-            JOIN tumbuhan t USING(id_tumbuhan)
-            WHERE dp.id_pengiriman = %s
+            join panen pa USING(id_panen)
+            join tumbuhan t USING(id_tumbuhan)
+            where dp.id_pengiriman = %s
         """
         cur.execute(q_detail, (pilih,))
         isi_detail = cur.fetchall()
@@ -502,10 +508,11 @@ def verifikasi_panen(id_karyawan):
             cur.execute(q_dist, (tgl_hari_ini, qty_masuk, pilih_gudang, id_karyawan, id_tumb, ID_TRANSAKSI_MASUK))
             print(f" {nama_brg}: Tercatat masuk di distribusi (+{qty_masuk} Kg)")
 
-        cur.execute("UPDATE pengiriman_pk SET status_verifikasi = 'Diterima', id_karyawan = %s WHERE id_pengiriman = %s", (id_karyawan, pilih))
+        cur.execute("UPDATE pengiriman_pk SET status_verifikasi = 'Diterima', id_karyawan = %s where id_pengiriman = %s", (id_karyawan, pilih))
         
         conn.commit()
         print(f"SUKSES! Data tersimpan di Gudang ID {pilih_gudang}.")
+        input("\nTekan Enter untuk kembali ke menu...")
 
     except Exception as e:
         conn.rollback()
@@ -522,8 +529,8 @@ def show_gudang():
             SUM(CASE WHEN d.id_transaksi = 1 THEN d.kuantitas ELSE -d.kuantitas END) as total_stok, 
             t.id_tumbuhan
             FROM distribusi d
-            JOIN gudang g ON d.id_gudang = g.id_gudang
-            JOIN tumbuhan t ON d.id_tumbuhan = t.id_tumbuhan
+            join gudang g ON d.id_gudang = g.id_gudang
+            join tumbuhan t ON d.id_tumbuhan = t.id_tumbuhan
             GROUP BY g.nama_gudang, t.nama_tumbuhan, t.id_tumbuhan
             HAVING SUM(CASE WHEN d.id_transaksi = 1 THEN d.kuantitas ELSE -d.kuantitas END) > 0
             ORDER BY g.nama_gudang ASC, t.nama_tumbuhan ASC
@@ -541,7 +548,7 @@ def show_gudang():
     
     if conn: conn.close()
 def gudang():
-    
+    clear()
     judul = [["STOK GUDANG"]]
     print("\n" + tbl.tabulate(judul, tablefmt="fancy_grid"))
     show_gudang()
@@ -588,7 +595,7 @@ def kirim_instansi(id_karyawan):
             nama_tumbuhan = input(f"Item ke-{len(keranjang)+1} Nama: ").lower().strip()
             if nama_tumbuhan == 'stop': break
 
-            cur.execute("SELECT id_tumbuhan FROM tumbuhan WHERE nama_tumbuhan ILIKE %s", (nama_tumbuhan,))
+            cur.execute("SELECT id_tumbuhan FROM tumbuhan where nama_tumbuhan ILIKE %s", (nama_tumbuhan,))
             res = cur.fetchone()
             if not res:
                 print("Barang tidak ditemukan.")
@@ -601,7 +608,7 @@ def kirim_instansi(id_karyawan):
                 
                 q_cek_stok = """
                     SELECT SUM(CASE WHEN id_transaksi = 1 THEN kuantitas ELSE -kuantitas END)
-                    FROM distribusi WHERE id_tumbuhan = %s
+                    FROM distribusi where id_tumbuhan = %s
                 """
                 cur.execute(q_cek_stok, (id_tumb,))
                 sisa_stok = cur.fetchone()[0] or 0 
@@ -656,6 +663,7 @@ def kirim_instansi(id_karyawan):
         conn.commit()
         print(f"SUKSES! Pengiriman ID {id_kirim_baru} sedang dikirim ke Dapur.")
         print("(Stok gudang otomatis berkurang)")
+        input("\nTekan Enter untuk kembali ke menu...")
 
     except Exception as e:
         conn.rollback()
@@ -686,6 +694,7 @@ def menu_karyawan(user_session):
         elif pilihan == "3. Kirim Ke Dapur Instansi":
             kirim_instansi(actv_id)
         elif pilihan == "4. Keluar":
+            clear()
             logout(user_session)
 
 def lihat_pengiriman_dapur(id_dapur):
@@ -696,8 +705,8 @@ def lihat_pengiriman_dapur(id_dapur):
         q_paket="""
             SELECT pk.id_pengiriman, pk.tgl_pegiriman, COUNT(dp.id_detail) as jumlah_jenis_barang
             FROM pengiriman_ki pk
-            JOIN detail_pengiriman_ki dp USING(id_pengiriman)
-            WHERE pk.id_dapur = %s AND pk.status_verifikasi = 'sedang dikirim'
+            join detail_pengiriman_ki dp USING(id_pengiriman)
+            where pk.id_dapur = %s AND pk.status_verifikasi = 'sedang dikirim'
             GROUP BY pk.id_pengiriman, pk.tgl_pegiriman
             ORDER BY pk.tgl_pegiriman ASC
         """
@@ -718,14 +727,13 @@ def lihat_pengiriman_dapur(id_dapur):
         
         try:
             input_str = input("Pilih ID: ")
-            if not input_str: return # Jika Enter doang, kembali
+            if not input_str: return 
             pilih_paket = int(input_str)
         except ValueError: 
             print("Input harus angka!")
             input("Enter...")
             return
 
-        # Cek apakah ID ada di list yang ditampilkan tadi
         cek_valid = [x for x in list_pengiriman if x[0] == pilih_paket]
         if not cek_valid:
             print("ID tidak ditemukan di daftar.")
@@ -735,8 +743,8 @@ def lihat_pengiriman_dapur(id_dapur):
         q_detail = """
             SELECT t.nama_tumbuhan, dp.kuantitas
             FROM detail_pengiriman_ki dp
-            JOIN tumbuhan t USING(id_tumbuhan)
-            WHERE dp.id_pengiriman = %s
+            join tumbuhan t USING(id_tumbuhan)
+            where dp.id_pengiriman = %s
         """
         cur.execute(q_detail, (pilih_paket,))
         isi_paket = cur.fetchall()
@@ -762,8 +770,8 @@ def verifikasi_dapur(id_dapur):
         q_pending = """
             SELECT pk.id_pengiriman, pk.tgl_pegiriman, COUNT(dp.id_detail) 
             FROM pengiriman_ki pk
-            JOIN detail_pengiriman_ki dp USING(id_pengiriman)
-            WHERE pk.id_dapur = %s AND pk.status_verifikasi = 'sedang dikirim'
+            join detail_pengiriman_ki dp USING(id_pengiriman)
+            where pk.id_dapur = %s AND pk.status_verifikasi = 'sedang dikirim'
             GROUP BY pk.id_pengiriman, pk.tgl_pegiriman
         """
         cur.execute(q_pending, (id_dapur,))
@@ -771,16 +779,18 @@ def verifikasi_dapur(id_dapur):
         
         if not data:
             print("Tidak ada kiriman baru.")
+            input("\nTekan Enter untuk kembali ke menu...")
             return
             
         print(tbl.tabulate(data, headers=["ID Kirim", "Tanggal", "Jml Item"], tablefmt="fancy_grid"))
         
-      
-        pilih = input("Masukkan ID Pengiriman untuk diterima: ").strip()
-        if not pilih: 
-            return
         try:
+            print("Input harus angka!")
+            pilih = input("Masukkan ID Pengiriman untuk diterima: ").strip()
             pilih=int(pilih)
+            if not pilih: 
+                return
+  
         except ValueError:
             return  
                    
@@ -788,15 +798,15 @@ def verifikasi_dapur(id_dapur):
         cur.execute("""
             SELECT t.nama_tumbuhan, dp.kuantitas 
             FROM detail_pengiriman_ki dp
-            JOIN tumbuhan t USING(id_tumbuhan)
-            WHERE dp.id_pengiriman = %s
+            join tumbuhan t USING(id_tumbuhan)
+            where dp.id_pengiriman = %s
         """, (pilih,))
         items = cur.fetchall()
         print(tbl.tabulate(items, headers=["Barang", "Qty"], tablefmt="fancy_grid"))
         
         if input("Terima barang ini? (y/n): ").lower() == 'y':
            
-            cur.execute("UPDATE pengiriman_ki SET status_verifikasi = 'Diterima' WHERE id_pengiriman = %s", (pilih,))
+            cur.execute("UPDATE pengiriman_ki SET status_verifikasi = 'Diterima' where id_pengiriman = %s", (pilih,))
             conn.commit()
             print("Barang diterima!")
         else:
@@ -825,16 +835,16 @@ def menu_dapur(user_session):
         
         if pilihan == "1. Lihat pengiriman":
             lihat_pengiriman_dapur(actv_id)
-            input("Tekan Enter untuk kembali...") 
 
         elif pilihan == "2. Verifikasi pengiriman":
             verifikasi_dapur(actv_id)
             input("Tekan Enter untuk kembali...") 
 
         elif pilihan == "3. Keluar (Logout)":
+            clear()
             logout(user_session)
 
-def show_user():
+def show_user(user_session):
     while True:
         clear()
         conn = connect()
@@ -848,10 +858,10 @@ def show_user():
                 SELECT a.id_akun, a.user_name,a.password, r.nama_role,
                     COALESCE(p.nama_petani, k.nama_karyawan, d.nama_dapur, '-') as nama_asli, a.no_hp, a.alamat, a.status_aktif
                 FROM akun a
-                JOIN roles r USING (id_role)
-                LEFT JOIN petani p USING(id_akun)
-                LEFT JOIN karyawan k USING(id_akun)
-                LEFT JOIN dapur_instansi d USING(id_akun)
+                join roles r USING (id_role)
+                left join petani p USING(id_akun)
+                left join karyawan k USING(id_akun)
+                left join dapur_instansi d USING(id_akun)
                 where id_role <> 4
                 ORDER BY a.id_akun ASC
             """
@@ -862,8 +872,8 @@ def show_user():
             if not data:
                 print("Belum ada data user.")
             else:
-                headers = ["ID", "Username","Password", "Role", "Nama Asli", "No HP", "Alamat","Status"]
-                print(tbl.tabulate(data, headers=headers, tablefmt="fancy_grid",maxcolwidths=[None, None, None, None, 20, None, 30,None]))
+                headers = ["ID", "User","Password", "Role", "Nama", "No HP", "Alamat","Status"]
+                print(tbl.tabulate(data, headers=headers, tablefmt="fancy_grid",maxcolwidths=[None, 15, 10, 15, 20, 15, 30, None]))
             pilihan = questionary.select(
                 f"Silakan pilih menu:",
                 choices=[
@@ -878,7 +888,9 @@ def show_user():
             elif pilihan == "2. Update data":
                 update_user()
             elif pilihan == "3. Hapus data":
-                hapus_user()   
+                hapus_user() 
+            elif pilihan == "4. Kembali":
+                menu_admin(user_session)
 
         except Exception as e:
             print("Terjadi kesalahan",e)
@@ -912,7 +924,7 @@ def tambah_user():
         print(f"\n--- Input Data {nama_role.title()} ---")
         username = input("Username : ").strip()
       
-        cur.execute("SELECT id_akun FROM akun WHERE user_name = %s", (username,))
+        cur.execute("SELECT id_akun FROM akun where user_name = %s", (username,))
         if cur.fetchone():
             print("Username sudah dipakai! Gunakan yang lain.")
             input("Tekan Enter...")
@@ -935,15 +947,15 @@ def tambah_user():
 
         if 'petani' in nama_role:
             cur.execute("""
-                INSERT INTO petani (nama_petani, alamat, id_akun)
-                VALUES (%s, %s, %s)
-            """, (nama_asli, alamat, id_akun_baru))
+                INSERT INTO petani (nama_petani, id_akun)
+                VALUES (%s, %s)
+            """, (nama_asli, id_akun_baru))
 
         elif 'karyawan' in nama_role:
             cur.execute("""
-                INSERT INTO karyawan (nama_karyawan, alamat, id_akun)
-                VALUES (%s, %s, %s)
-            """, (nama_asli, alamat, id_akun_baru))
+                INSERT INTO karyawan (nama_karyawan, id_akun)
+                VALUES (%s, %s)
+            """, (nama_asli, id_akun_baru))
             
         elif 'dapur instansi' in nama_role:
             cur.execute("""
@@ -970,7 +982,7 @@ def update_user():
         
         id_target = int(input("Masukkan ID Akun yang mau diubah: "))
 
-        query_cek = "SELECT id_akun, id_role FROM akun WHERE id_akun = %s"
+        query_cek = "SELECT id_akun, id_role FROM akun where id_akun = %s"
         cur.execute(query_cek, (id_target,))
         result = cur.fetchone()
 
@@ -992,18 +1004,18 @@ def update_user():
         q_update_akun = """
             UPDATE akun 
             SET user_name = %s, password = %s, no_hp = %s, alamat = %s 
-            WHERE id_akun = %s
+            where id_akun = %s
         """
         cur.execute(q_update_akun, (new_username, new_password, new_hp, new_alamat, id_target))
 
         if role_target == 1:
-            cur.execute("UPDATE petani SET nama_petani = %s WHERE id_akun = %s", (new_nama, id_target))
+            cur.execute("UPDATE petani SET nama_petani = %s where id_akun = %s", (new_nama, id_target))
             
         elif role_target == 2:
-            cur.execute("UPDATE karyawan SET nama_karyawan = %s WHERE id_akun = %s", (new_nama, id_target))
+            cur.execute("UPDATE karyawan SET nama_karyawan = %s where id_akun = %s", (new_nama, id_target))
             
         elif role_target == 3: 
-            cur.execute("UPDATE dapur_instansi SET nama_dapur = %s WHERE id_akun = %s", (new_nama, id_target))
+            cur.execute("UPDATE dapur_instansi SET nama_dapur = %s where id_akun = %s", (new_nama, id_target))
 
         conn.commit()
         print("Data berhasil diperbarui!")
@@ -1030,12 +1042,12 @@ def history_petani_karyawan():
         query = """
         SELECT p.tgl_pengiriman, pet.nama_petani, kar.nama_karyawan, t.nama_tumbuhan, dp.kuantitas, p.status_verifikasi
                 FROM pengiriman_pk p
-                JOIN detail_pengiriman_pk dp USING(id_pengiriman)
-                JOIN petani pet USING(id_petani)
-                LEFT JOIN karyawan kar USING(id_karyawan)
-                JOIN panen pa ON dp.id_panen = pa.id_panen
-                JOIN tumbuhan t ON pa.id_tumbuhan = t.id_tumbuhan
-                WHERE EXTRACT(MONTH FROM p.tgl_pengiriman) = %s
+                join detail_pengiriman_pk dp USING(id_pengiriman)
+                join petani pet USING(id_petani)
+                left join karyawan kar USING(id_karyawan)
+                join panen pa ON dp.id_panen = pa.id_panen
+                join tumbuhan t ON pa.id_tumbuhan = t.id_tumbuhan
+                where EXTRACT(MONTH FROM p.tgl_pengiriman) = %s
                 ORDER BY p.tgl_pengiriman ASC
         """
 
@@ -1074,11 +1086,11 @@ def history_karyawan_dapur():
                dp.kuantitas, 
                pk.status_verifikasi
         FROM pengiriman_ki pk
-        JOIN detail_pengiriman_ki dp USING(id_pengiriman)
-        JOIN karyawan kar USING(id_karyawan)
-        JOIN dapur_instansi dpur USING(id_dapur)
-        JOIN tumbuhan t USING(id_tumbuhan)
-        WHERE EXTRACT(MONTH FROM pk.tgl_pegiriman) = %s
+        join detail_pengiriman_ki dp USING(id_pengiriman)
+        join karyawan kar USING(id_karyawan)
+        join dapur_instansi dpur USING(id_dapur)
+        join tumbuhan t USING(id_tumbuhan)
+        where EXTRACT(MONTH FROM pk.tgl_pegiriman) = %s
         ORDER BY pk.tgl_pegiriman ASC
         """
 
@@ -1108,7 +1120,7 @@ def hapus_user():
         
         id_hapus = input("Masukkan ID Akun yang ingin dinonaktifkan: ").strip()
 
-        cur.execute("SELECT id_akun, user_name, status_aktif FROM akun WHERE id_akun = %s", (id_hapus,))
+        cur.execute("SELECT id_akun, user_name, status_aktif FROM akun where id_akun = %s", (id_hapus,))
         akun = cur.fetchone()
 
         if not akun:
@@ -1129,7 +1141,7 @@ def hapus_user():
             input("Tekan Enter untuk kembali...")
             return
 
-        cur.execute("UPDATE akun SET status_aktif = 0 WHERE id_akun = %s", (id_hapus,))
+        cur.execute("UPDATE akun SET status_aktif = 0 where id_akun = %s", (id_hapus,))
         conn.commit()
 
         print("\nAkun berhasil dinonaktifkan!")
@@ -1162,7 +1174,7 @@ def menu_admin(user_session):
 
         if pilihan == "1. Lihat data user":
             clear()
-            show_user()
+            show_user(user_session)
 
         elif pilihan == "2. Lihat pengiriman petani to karyawan":
             clear()

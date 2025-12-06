@@ -1,5 +1,5 @@
 
-SELECT * from distribusi
+SELECT * from akun
 
 
 CREATE table petani(
@@ -30,7 +30,7 @@ id_akun serial primary key not null,
 user_name varchar(15) UNIQUE not null ,
 password varchar(10) not null,
 no_hp varchar(14) not null,
-alamat 
+alamat varchar(100) not null,
 id_role integer REFERENCES roles(id_role)
 )
 
@@ -115,3 +115,7 @@ SELECT * from akun
 SELECT * FROM dapur_instansi WHERE id_akun = 3;
 SELECT * FROM akun WHERE id_role <> 4 
 alter table akun add column status_aktif_akun integer default 1
+
+ALTER TABLE akun
+ 
+RENAME COLUMN status_akun to status_aktif
